@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Progress - Student Smart Planner{% endblock %}
+{% block page_title %}Progress Tracking{% endblock %}
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-green">
+            <i class="bi bi-check2-circle"></i>
+            <div><h4>{{ completed }}</h4><span>Completed</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-orange">
+            <i class="bi bi-hourglass-split"></i>
+            <div><h4>{{ pending }}</h4><span>Pending</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-red">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div><h4>{{ overdue }}</h4><span>Overdue</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-purple">
+            <i class="bi bi-graph-up-arrow"></i>
+            <div><h4>{{ completion_percentage }}%</h4><span>Overall</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-pie-chart"></i> Completed vs Pending</h5>
+            <canvas id="progressDoughnut" height="240"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-bar-chart"></i> Subject-wise Completion</h5>
+            <canvas id="progressBar" height="240"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Chart(document.getElementById('progressDoughnut'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Completed', 'Pending', 'Overdue'],
+        datasets: [{
+            data: [{{ completed }}, {{ pending }}, {{ overdue }}],
+            backgroundColor: ['#4caf7d', '#f5a623', '#e5484d'],
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+new Chart(document.getElementById('progressBar'), {
+    type: 'bar',
+    data: {
+        labels: [{% for sp in subject_progress %}"{{ sp.subject_name }}",{% endfor %}],
+        datasets: [
+            {
+                label: 'Completed',
+                data: [{% for sp in subject_progress %}{{ sp.completed_count or 0 }},{% endfor %}],
+                backgroundColor: '#4caf7d'
+            },
+            {
+                label: 'Pending',
+                data: [{% for sp in subject_progress %}{{ sp.pending_count or 0 }},{% endfor %}],
+                backgroundColor: '#f5a623'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Exams - Student Smart Planner{% endblock %}
+{% block page_title %}Exam Tracker{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <form class="d-flex" method="GET" action="{{ url_for('exams') }}">
+        <input type="text" name="q" class="form-control search-input" placeholder="Search exams..." value="{{ search_query }}">
+        <button class="btn btn-outline-secondary ms-2" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
+        <i class="bi bi-plus-lg"></i> Add Exam
+    </button>
+</div>
+
+<div class="row g-3">
+    {% for exam in exams %}
+    <div class="col-md-4">
+        <div class="panel-card exam-card {{ 'exam-soon' if exam.days_remaining <= 3 and exam.days_remaining >= 0 }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <h5>{{ exam.exam_name }}</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editExamModal{{ exam.exam_id }}">Edit</a></li>
+                        <li>
+                            <form method="POST" action="{{ url_for('delete_exam', exam_id=exam.exam_id) }}" onsubmit="return confirm('Delete this exam?');">
+                                <button class="dropdown-item text-danger" type="submit">Delete</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <p class="mb-1 text-muted">{{ exam.subject_name or 'General' }}</p>
+            <p class="mb-1"><i class="bi bi-calendar-date"></i> {{ exam.exam_date }} {% if exam.exam_time %} · {{ exam.exam_time }}{% endif %}</p>
+            {% if exam.venue %}<p class="mb-1"><i class="bi bi-geo-alt"></i> {{ exam.venue }}</p>{% endif %}
+            {% if exam.notes %}<p class="mb-2 small text-muted">{{ exam.notes }}</p>{% endif %}
+            {% if exam.days_remaining >= 0 %}
+            <span class="badge {{ 'bg-danger' if exam.days_remaining <= 3 else 'bg-warning text-dark' }}">
+                {{ exam.days_remaining }} day{{ 's' if exam.days_remaining != 1 else '' }} remaining
+            </span>
+            {% else %}
+            <span class="badge bg-secondary">Completed</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="editExamModal{{ exam.exam_id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ url_for('edit_exam', exam_id=exam.exam_id) }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Exam</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Exam Name *</label>
+                            <input type="text" name="exam_name" class="form-control" value="{{ exam.exam_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <select name="subject_id" class="form-select">
+                                <option value="">None</option>
+                                {% for s in subjects %}
+                                <option value="{{ s.subject_id }}" {{ 'selected' if exam.subject_id == s.subject_id }}>{{ s.subject_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Exam Date *</label>
+                            <input type="date" name="exam_date" class="form-control" value="{{ exam.exam_date }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Exam Time</label>
+                            <input type="time" name="exam_time" class="form-control" value="{{ exam.exam_time or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Venue</label>
+                            <input type="text" name="venue" class="form-control" value="{{ exam.venue or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2">{{ exam.notes or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="empty-state">
+            <i class="bi bi-journal-x"></i>
+            <p>No exams added yet.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="addExamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('add_exam') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Exam</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Exam Name *</label>
+                        <input type="text" name="exam_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <select name="subject_id" class="form-select">
+                            <option value="">None</option>
+                            {% for s in subjects %}
+                            <option value="{{ s.subject_id }}">{{ s.subject_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exam Date *</label>
+                        <input type="date" name="exam_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exam Time</label>
+                        <input type="time" name="exam_time" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Venue</label>
+                        <input type="text" name="venue" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Exam</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

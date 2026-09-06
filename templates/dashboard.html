@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Student Smart Planner{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<h3 class="welcome-heading">Welcome back, {{ session.get('full_name') }} 👋</h3>
+<p class="text-muted mb-4">Here's what's happening with your academics today.</p>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-blue">
+            <i class="bi bi-journal-bookmark"></i>
+            <div>
+                <h4>{{ total_subjects }}</h4>
+                <span>Subjects</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-orange">
+            <i class="bi bi-hourglass-split"></i>
+            <div>
+                <h4>{{ pending_tasks }}</h4>
+                <span>Pending Tasks</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-green">
+            <i class="bi bi-check2-circle"></i>
+            <div>
+                <h4>{{ completed_tasks }}</h4>
+                <span>Completed Tasks</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-purple">
+            <i class="bi bi-graph-up-arrow"></i>
+            <div>
+                <h4>{{ completion_percentage }}%</h4>
+                <span>Overall Completion</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Upcoming Deadlines -->
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-calendar-event"></i> Upcoming Deadlines</h5>
+            {% if upcoming_deadlines %}
+                <ul class="simple-list">
+                    {% for task in upcoming_deadlines %}
+                    <li>
+                        <span>{{ task.title }} <small class="text-muted">({{ task.subject_name or 'No subject' }})</small></span>
+                        <span class="badge bg-secondary">{{ task.due_date }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No upcoming deadlines. You're all caught up!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Exams -->
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-pencil-square"></i> Upcoming Exams</h5>
+            {% if upcoming_exams %}
+                <ul class="simple-list">
+                    {% for exam in upcoming_exams %}
+                    <li>
+                        <span>{{ exam.exam_name }} <small class="text-muted">({{ exam.subject_name or 'General' }})</small></span>
+                        <span class="badge {{ 'bg-danger' if exam.days_remaining <= 3 else 'bg-warning text-dark' }}">
+                            {{ exam.days_remaining }} day{{ 's' if exam.days_remaining != 1 else '' }} left
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No exams scheduled yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Today's Study Schedule -->
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-clock-history"></i> Today's Study Schedule</h5>
+            {% if todays_schedule %}
+                <ul class="simple-list">
+                    {% for item in todays_schedule %}
+                    <li>
+                        <span>{{ item.topic or 'Study session' }} <small class="text-muted">({{ item.subject_name or 'General' }})</small></span>
+                        <span class="badge bg-info text-dark">{{ item.start_time }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No study sessions planned for today.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- High Priority Tasks -->
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-exclamation-triangle"></i> High-Priority Tasks</h5>
+            {% if high_priority_tasks %}
+                <ul class="simple-list">
+                    {% for task in high_priority_tasks %}
+                    <li>
+                        <span>{{ task.title }}</span>
+                        <span class="badge bg-danger">Due {{ task.due_date }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No high-priority tasks pending.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Completion Chart -->
+    <div class="col-md-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-pie-chart"></i> Task Completion</h5>
+            <canvas id="dashboardDoughnutChart" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ctx = document.getElementById('dashboardDoughnutChart');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Completed', 'Pending'],
+        datasets: [{
+            data: [{{ completed_tasks }}, {{ pending_tasks }}],
+            backgroundColor: ['#4caf7d', '#f5a623'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+</script>
+{% endblock %}
