@@ -9,6 +9,7 @@
 <!-- Stat Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
+        <a href="{{ url_for('subjects') }}" class="dashboard-card-link" aria-label="Open subjects">
         <div class="stat-card stat-blue">
             <i class="bi bi-journal-bookmark"></i>
             <div>
@@ -16,8 +17,10 @@
                 <span>Subjects</span>
             </div>
         </div>
+        </a>
     </div>
     <div class="col-6 col-md-3">
+        <a href="{{ url_for('tasks') }}" class="dashboard-card-link" aria-label="Open pending tasks">
         <div class="stat-card stat-orange">
             <i class="bi bi-hourglass-split"></i>
             <div>
@@ -25,8 +28,10 @@
                 <span>Pending Tasks</span>
             </div>
         </div>
+        </a>
     </div>
     <div class="col-6 col-md-3">
+        <a href="{{ url_for('tasks') }}" class="dashboard-card-link" aria-label="Open completed tasks">
         <div class="stat-card stat-green">
             <i class="bi bi-check2-circle"></i>
             <div>
@@ -34,8 +39,10 @@
                 <span>Completed Tasks</span>
             </div>
         </div>
+        </a>
     </div>
     <div class="col-6 col-md-3">
+        <a href="{{ url_for('progress') }}" class="dashboard-card-link" aria-label="Open progress">
         <div class="stat-card stat-purple">
             <i class="bi bi-graph-up-arrow"></i>
             <div>
@@ -43,12 +50,14 @@
                 <span>Overall Completion</span>
             </div>
         </div>
+        </a>
     </div>
 </div>
 
 <div class="row g-3">
     <!-- Upcoming Deadlines -->
     <div class="col-md-6">
+        <a href="{{ url_for('tasks') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-calendar-event"></i> Upcoming Deadlines</h5>
             {% if upcoming_deadlines %}
@@ -64,10 +73,12 @@
                 <p class="text-muted mb-0">No upcoming deadlines. You're all caught up!</p>
             {% endif %}
         </div>
+        </a>
     </div>
 
     <!-- Upcoming Exams -->
     <div class="col-md-6">
+        <a href="{{ url_for('exams') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-pencil-square"></i> Upcoming Exams</h5>
             {% if upcoming_exams %}
@@ -85,10 +96,12 @@
                 <p class="text-muted mb-0">No exams scheduled yet.</p>
             {% endif %}
         </div>
+        </a>
     </div>
 
     <!-- Today's Study Schedule -->
     <div class="col-md-6">
+        <a href="{{ url_for('schedule') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-clock-history"></i> Today's Study Schedule</h5>
             {% if todays_schedule %}
@@ -104,10 +117,12 @@
                 <p class="text-muted mb-0">No study sessions planned for today.</p>
             {% endif %}
         </div>
+        </a>
     </div>
 
     <!-- High Priority Tasks -->
     <div class="col-md-6">
+        <a href="{{ url_for('tasks') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-exclamation-triangle"></i> High-Priority Tasks</h5>
             {% if high_priority_tasks %}
@@ -123,14 +138,17 @@
                 <p class="text-muted mb-0">No high-priority tasks pending.</p>
             {% endif %}
         </div>
+        </a>
     </div>
 
     <!-- Completion Chart -->
     <div class="col-md-6">
+        <a href="{{ url_for('progress') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-pie-chart"></i> Task Completion</h5>
             <canvas id="dashboardDoughnutChart" height="220"></canvas>
         </div>
+        </a>
     </div>
 </div>
 
