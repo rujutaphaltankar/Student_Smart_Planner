@@ -3,48 +3,6 @@
 {% block page_title %}Tasks & Assignments{% endblock %}
 {% block content %}
 
-<div class="filter-bar panel-card mb-3">
-    <form method="GET" action="{{ url_for('tasks') }}" class="row g-2 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label small">Search</label>
-            <input type="text" name="q" class="form-control form-control-sm" value="{{ search_query }}" placeholder="Task title or description">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Assigned subject</label>
-            <select name="subject_id" class="form-select form-select-sm">
-                <option value="">All</option>
-                {% for s in subjects %}
-                <option value="{{ s.subject_id }}" {{ 'selected' if subject_filter|string == s.subject_id|string }}>{{ s.subject_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Priority</label>
-            <select name="priority" class="form-select form-select-sm">
-                <option value="">All</option>
-                <option value="High" {{ 'selected' if priority_filter == 'High' }}>High</option>
-                <option value="Medium" {{ 'selected' if priority_filter == 'Medium' }}>Medium</option>
-                <option value="Low" {{ 'selected' if priority_filter == 'Low' }}>Low</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Status</label>
-            <select name="status" class="form-select form-select-sm">
-                <option value="">All</option>
-                <option value="Pending" {{ 'selected' if status_filter == 'Pending' }}>Pending</option>
-                <option value="Completed" {{ 'selected' if status_filter == 'Completed' }}>Completed</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Due Date</label>
-            <input type="date" name="due_date" class="form-control form-control-sm" value="{{ due_date_filter }}">
-        </div>
-        <div class="col-md-1">
-            <button class="btn btn-sm btn-outline-secondary w-100" type="submit"><i class="bi bi-funnel"></i></button>
-        </div>
-    </form>
-</div>
-
 <div class="panel-card">
     <div class="task-list-header">
         <h5 class="mb-0"><i class="bi bi-list-check"></i> Assigned Tasks</h5>
