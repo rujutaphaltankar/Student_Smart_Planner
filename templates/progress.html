@@ -33,8 +33,29 @@
 <div class="row g-3">
     <div class="col-md-6">
         <div class="panel-card">
-            <h5><i class="bi bi-pie-chart"></i> Completed vs Pending</h5>
-            <canvas id="progressDoughnut" height="240"></canvas>
+            <div class="progress-panel-heading">
+                <h5><i class="bi bi-stars"></i> Progress Snapshot</h5>
+                <span class="progress-live-label"><i class="bi bi-circle-fill"></i> Live</span>
+            </div>
+            <div class="progress-score">
+                <div>
+                    <span class="progress-score-label">Overall completion</span>
+                    <strong>{{ completion_percentage }}<small>%</small></strong>
+                    <span class="progress-score-caption">Keep building your momentum</span>
+                </div>
+                <div class="progress-score-icon"><i class="bi bi-rocket-takeoff"></i></div>
+            </div>
+            <div class="progress-rail" aria-label="Task status distribution">
+                {% set total_tracked = completed + pending + overdue %}
+                <span class="progress-rail-completed" style="width: {{ (completed / total_tracked * 100) if total_tracked else 0 }}%"></span>
+                <span class="progress-rail-pending" style="width: {{ (pending / total_tracked * 100) if total_tracked else 0 }}%"></span>
+                <span class="progress-rail-overdue" style="width: {{ (overdue / total_tracked * 100) if total_tracked else 0 }}%"></span>
+            </div>
+            <div class="progress-status-list">
+                <div><span><i class="bi bi-circle-fill status-completed"></i> Completed</span><strong>{{ completed }} <small>{{ ((completed / total_tracked * 100) if total_tracked else 0)|round(0)|int }}%</small></strong></div>
+                <div><span><i class="bi bi-circle-fill status-pending"></i> Pending</span><strong>{{ pending }} <small>{{ ((pending / total_tracked * 100) if total_tracked else 0)|round(0)|int }}%</small></strong></div>
+                <div><span><i class="bi bi-circle-fill status-overdue"></i> Overdue</span><strong>{{ overdue }} <small>{{ ((overdue / total_tracked * 100) if total_tracked else 0)|round(0)|int }}%</small></strong></div>
+            </div>
         </div>
     </div>
     <div class="col-md-6">
@@ -49,19 +70,6 @@
 
 {% block scripts %}
 <script>
-new Chart(document.getElementById('progressDoughnut'), {
-    type: 'doughnut',
-    data: {
-        labels: ['Completed', 'Pending', 'Overdue'],
-        datasets: [{
-            data: [{{ completed }}, {{ pending }}, {{ overdue }}],
-            backgroundColor: ['#4caf7d', '#f5a623', '#e5484d'],
-            borderWidth: 0
-        }]
-    },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-});
-
 new Chart(document.getElementById('progressBar'), {
     type: 'bar',
     data: {

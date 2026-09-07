@@ -292,6 +292,31 @@ body {
 .search-input { max-width: 260px; }
 
 .filter-bar { padding: 16px; }
+.progress-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.progress-panel-heading h5 { margin-bottom: 0; }
+.progress-live-label { color: #4caf7d; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+.progress-live-label i { font-size: 0.5rem; vertical-align: middle; }
+.progress-score { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 22px; }
+.progress-score-label, .progress-score-caption { display: block; color: var(--text-muted); font-size: 0.82rem; }
+.progress-score strong { display: block; color: var(--text-main); font-size: 2.8rem; line-height: 1.1; }
+.progress-score strong small { color: var(--accent); font-size: 1.25rem; }
+.progress-score-caption { margin-top: 4px; }
+.progress-score-icon { width: 58px; height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(79,107,247,0.12); color: var(--accent); font-size: 1.6rem; }
+.progress-rail { display: flex; overflow: hidden; height: 12px; border-radius: 8px; background: var(--border-color); }
+.progress-rail span { min-width: 0; transition: width 0.4s ease; }
+.progress-rail-completed { background: #4caf7d; }
+.progress-rail-pending { background: #f5a623; }
+.progress-rail-overdue { background: #e5484d; }
+.progress-status-list { margin-top: 20px; }
+.progress-status-list div { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
+.progress-status-list div:last-child { border-bottom: none; }
+.progress-status-list span { display: inline-flex; align-items: center; gap: 8px; }
+.progress-status-list span i { font-size: 0.5rem; }
+.progress-status-list strong { font-size: 0.9rem; }
+.progress-status-list strong small { color: var(--text-muted); font-weight: 500; margin-left: 4px; }
+.status-completed { color: #4caf7d; }
+.status-pending { color: #f5a623; }
+.status-overdue { color: #e5484d; }
 
 .task-list-header {
     display: flex;
