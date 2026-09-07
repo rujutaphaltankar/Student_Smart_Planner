@@ -18,7 +18,7 @@
     <div class="col-md-4">
         <div class="panel-card exam-card {{ 'exam-soon' if exam.days_remaining <= 3 and exam.days_remaining >= 0 }}">
             <div class="d-flex justify-content-between align-items-start">
-                <h5>{{ exam.exam_name }}</h5>
+                <h5><a class="exam-title-link" href="{{ url_for('exam_detail', exam_id=exam.exam_id) }}">{{ exam.exam_name }}</a></h5>
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
                     <ul class="dropdown-menu dropdown-menu-end">
@@ -42,6 +42,7 @@
             {% else %}
             <span class="badge bg-secondary">Completed</span>
             {% endif %}
+            <a class="exam-details-link" href="{{ url_for('exam_detail', exam_id=exam.exam_id) }}">View exam details <i class="bi bi-arrow-right"></i></a>
         </div>
     </div>
 

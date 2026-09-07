@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ exam.exam_name }} - Student Smart Planner{% endblock %}
+{% block page_title %}Exam Details{% endblock %}
+{% block content %}
+
+<div class="exam-detail-page">
+    <a href="{{ url_for('exams') }}" class="back-link"><i class="bi bi-arrow-left"></i> Back to exams</a>
+
+    <div class="panel-card exam-detail-card">
+        <div class="exam-detail-header">
+            <div>
+                <span class="profile-eyebrow">Exam information</span>
+                <h2>{{ exam.exam_name }}</h2>
+                <p class="text-muted mb-0">{{ exam.subject_name or 'General exam' }}</p>
+            </div>
+            <i class="bi bi-mortarboard exam-detail-icon"></i>
+        </div>
+
+        <div class="exam-detail-grid">
+            <div class="exam-detail-item">
+                <span><i class="bi bi-calendar-date"></i> Date</span>
+                <strong>{{ exam.exam_date.strftime('%d %b %Y') }}</strong>
+            </div>
+            <div class="exam-detail-item">
+                <span><i class="bi bi-clock"></i> Time</span>
+                <strong>{{ exam.exam_time or 'Not set' }}</strong>
+            </div>
+            <div class="exam-detail-item">
+                <span><i class="bi bi-geo-alt"></i> Venue</span>
+                <strong>{{ exam.venue or 'Not set' }}</strong>
+            </div>
+            <div class="exam-detail-item">
+                <span><i class="bi bi-hourglass-split"></i> Status</span>
+                {% if exam.days_remaining >= 0 %}
+                <strong>{{ exam.days_remaining }} day{{ 's' if exam.days_remaining != 1 else '' }} remaining</strong>
+                {% else %}
+                <strong>Completed</strong>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="exam-notes">
+            <h5><i class="bi bi-sticky"></i> Notes</h5>
+            <p class="mb-0">{{ exam.notes or 'No notes added for this exam.' }}</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

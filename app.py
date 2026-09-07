@@ -638,6 +638,30 @@ def exams():
     return render_template("exams.html", exams=exam_list, subjects=subject_list, search_query=search_query)
 
 
+@app.route("/exams/<int:exam_id>")
+@login_required
+def exam_detail(exam_id):
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT e.*, s.subject_name FROM exams e
+           LEFT JOIN subjects s ON e.subject_id = s.subject_id
+           WHERE e.exam_id = %s AND e.user_id = %s""",
+        (exam_id, user_id),
+    )
+    exam = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not exam:
+        flash("Exam not found.", "warning")
+        return redirect(url_for("exams"))
+
+    exam["days_remaining"] = (exam["exam_date"] - date.today()).days
+    return render_template("exam_detail.html", exam=exam)
+
+
 @app.route("/exams/add", methods=["POST"])
 @login_required
 def add_exam():
