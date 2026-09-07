@@ -3,23 +3,46 @@
 {% block page_title %}Profile{% endblock %}
 {% block content %}
 
-<div class="panel-card" style="max-width: 500px;">
-    <div class="text-center mb-4">
-        <div class="profile-avatar"><i class="bi bi-person-fill"></i></div>
-        <h4 class="mt-2 mb-0">{{ user.full_name }}</h4>
-        <p class="text-muted">{{ user.email }}</p>
+<div class="profile-grid">
+    <div class="panel-card profile-details-card">
+        <div class="text-center mb-4">
+            <div class="profile-avatar"><i class="bi bi-person-fill"></i></div>
+            <h4 class="mt-2 mb-0">{{ user.full_name }}</h4>
+            <p class="text-muted">{{ user.email }}</p>
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between">
+                <span>Full Name</span><strong>{{ user.full_name }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+                <span>Email</span><strong>{{ user.email }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+                <span>Member Since</span><strong>{{ user.created_at.strftime('%d %b %Y') }}</strong>
+            </li>
+        </ul>
     </div>
-    <ul class="list-group list-group-flush">
-        <li class="list-group-item d-flex justify-content-between">
-            <span>Full Name</span><strong>{{ user.full_name }}</strong>
-        </li>
-        <li class="list-group-item d-flex justify-content-between">
-            <span>Email</span><strong>{{ user.email }}</strong>
-        </li>
-        <li class="list-group-item d-flex justify-content-between">
-            <span>Member Since</span><strong>{{ user.created_at.strftime('%d %b %Y') }}</strong>
-        </li>
-    </ul>
+
+    <div class="profile-side-column">
+        <div class="panel-card profile-welcome-card">
+            <span class="profile-eyebrow">Your study space</span>
+            <h4>Keep your semester moving.</h4>
+            <p>Use your planner to turn upcoming work into a clear, manageable routine.</p>
+            <div class="profile-actions">
+                <a href="{{ url_for('tasks') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add a task</a>
+                <a href="{{ url_for('schedule') }}" class="btn btn-outline-primary"><i class="bi bi-calendar-plus"></i> Plan study time</a>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <h5><i class="bi bi-compass"></i> Quick links</h5>
+            <div class="profile-link-list">
+                <a href="{{ url_for('subjects') }}"><span><i class="bi bi-book"></i> Manage subjects</span><i class="bi bi-arrow-right"></i></a>
+                <a href="{{ url_for('exams') }}"><span><i class="bi bi-mortarboard"></i> Track exams</span><i class="bi bi-arrow-right"></i></a>
+                <a href="{{ url_for('progress') }}"><span><i class="bi bi-bar-chart"></i> View progress</span><i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
