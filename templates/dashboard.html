@@ -146,9 +146,38 @@
         <a href="{{ url_for('progress') }}" class="dashboard-panel-link">
         <div class="panel-card">
             <h5><i class="bi bi-pie-chart"></i> Task Completion</h5>
-            <canvas id="dashboardDoughnutChart" height="220"></canvas>
+            <canvas id="dashboardDoughnutChart" height="160"></canvas>
         </div>
         </a>
+    </div>
+
+    <div class="col-md-6">
+        <div class="panel-card quick-actions-card">
+            <h5><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+            <p class="text-muted small mb-3">Keep your planner up to date.</p>
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('tasks') }}" class="quick-action-item">
+                    <i class="bi bi-check2-square quick-action-task"></i>
+                    <span><strong>Add or update tasks</strong><small>Stay on top of deadlines</small></span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{{ url_for('exams') }}" class="quick-action-item">
+                    <i class="bi bi-pencil-square quick-action-exam"></i>
+                    <span><strong>Track an exam</strong><small>Never miss an important date</small></span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{{ url_for('schedule') }}" class="quick-action-item">
+                    <i class="bi bi-clock-history quick-action-schedule"></i>
+                    <span><strong>Plan study time</strong><small>Build today's routine</small></span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{{ url_for('subjects') }}" class="quick-action-item">
+                    <i class="bi bi-journal-bookmark quick-action-subject"></i>
+                    <span><strong>Manage subjects</strong><small>Keep your courses organized</small></span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -169,6 +198,7 @@ new Chart(ctx, {
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom' } }
     }
 });
