@@ -524,6 +524,14 @@ def add_task():
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    if subject_id:
+        cursor.execute("SELECT subject_id FROM subjects WHERE subject_id = %s AND user_id = %s", (subject_id, user_id))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            flash("Please choose one of your subjects.", "danger")
+            return redirect(url_for("tasks"))
+
     cursor.execute(
         """INSERT INTO tasks (user_id, subject_id, title, description, due_date, priority, status)
            VALUES (%s, %s, %s, %s, %s, %s, 'Pending')""",
@@ -554,6 +562,14 @@ def edit_task(task_id):
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    if subject_id:
+        cursor.execute("SELECT subject_id FROM subjects WHERE subject_id = %s AND user_id = %s", (subject_id, user_id))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            flash("Please choose one of your subjects.", "danger")
+            return redirect(url_for("tasks"))
+
     cursor.execute(
         """UPDATE tasks SET subject_id=%s, title=%s, description=%s, due_date=%s,
            priority=%s, status=%s WHERE task_id=%s AND user_id=%s""",

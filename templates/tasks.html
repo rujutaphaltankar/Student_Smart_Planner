@@ -10,7 +10,7 @@
             <input type="text" name="q" class="form-control form-control-sm" value="{{ search_query }}" placeholder="Task title or description">
         </div>
         <div class="col-md-2">
-            <label class="form-label small">Subject</label>
+            <label class="form-label small">Assigned subject</label>
             <select name="subject_id" class="form-select form-select-sm">
                 <option value="">All</option>
                 {% for s in subjects %}
@@ -110,9 +110,9 @@
                                         <input type="text" name="title" class="form-control" value="{{ task.title }}" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Subject</label>
+                                        <label class="form-label">Assign to subject</label>
                                         <select name="subject_id" class="form-select">
-                                            <option value="">None</option>
+                                            <option value="">Unassigned</option>
                                             {% for s in subjects %}
                                             <option value="{{ s.subject_id }}" {{ 'selected' if task.subject_id == s.subject_id }}>{{ s.subject_name }}</option>
                                             {% endfor %}
@@ -173,9 +173,9 @@
                         <input type="text" name="title" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Subject</label>
+                        <label class="form-label">Assign to subject</label>
                         <select name="subject_id" class="form-select">
-                            <option value="">None</option>
+                            <option value="">Unassigned</option>
                             {% for s in subjects %}
                             <option value="{{ s.subject_id }}">{{ s.subject_name }}</option>
                             {% endfor %}
