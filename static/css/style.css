@@ -278,6 +278,20 @@ body {
 
 .filter-bar { padding: 16px; }
 
+.task-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+.task-list-header h5 { color: var(--text-main); }
+
+@media (max-width: 576px) {
+    .task-list-header { align-items: flex-start; flex-direction: column; }
+    .task-list-header .btn { width: 100%; }
+}
+
 .profile-avatar {
     width: 80px;
     height: 80px;
