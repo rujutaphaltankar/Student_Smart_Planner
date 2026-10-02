@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Reports - Student Smart Planner{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card stat-blue">
+            <i class="bi bi-list-task"></i>
+            <div>
+                <h4>{{ total_tasks }}</h4>
+                <span>Total Tasks</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-orange">
+            <i class="bi bi-hourglass-split"></i>
+            <div>
+                <h4>{{ pending_tasks }}</h4>
+                <span>Pending</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-green">
+            <i class="bi bi-check2-circle"></i>
+            <div>
+                <h4>{{ completed_tasks }}</h4>
+                <span>Completed</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-purple">
+            <i class="bi bi-award"></i>
+            <div>
+                <h4>{{ average_grade }}%</h4>
+                <span>Average Grade</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-download"></i> Export</h5>
+        <a href="{{ url_for('export_reports_csv') }}" class="btn btn-outline-primary btn-sm">Download CSV</a>
+    </div>
+    <p class="text-muted mb-0">Quick summary of your academic workload and performance.</p>
+</div>
+
+<div class="panel-card">
+    <h5 class="mb-3"><i class="bi bi-bar-chart-line"></i> Task Summary</h5>
+    {% if tasks %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.due_date }}</td>
+                    <td><span class="badge {{ 'bg-success' if task.status == 'Completed' else 'bg-warning text-dark' }}">{{ task.status }}</span></td>
+                    <td>{{ task.priority }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No tasks yet. Start by creating a few assignments.</p>
+    {% endif %}
+</div>
+{% endblock %}

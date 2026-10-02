@@ -17,3 +17,11 @@ class Config:
     MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "root123")
     MYSQL_DB = os.environ.get("MYSQL_DB", "student_smart_planner")
     MYSQL_PORT = int(os.environ.get("MYSQL_PORT", 3306))
+
+    # Optional SMTP settings for email reminder summaries.
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_SENDER = os.environ.get("SMTP_SENDER", "noreply@studentplanner.local")
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes", "on"}

@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from app import build_reminder_items, get_next_due_date
+from app import build_reminder_email_body, build_reminder_items, calculate_grade_letter, get_next_due_date
 
 
 class PlannerHelperTests(unittest.TestCase):
@@ -20,6 +20,25 @@ class PlannerHelperTests(unittest.TestCase):
         self.assertEqual(len(reminders), 2)
         self.assertEqual(reminders[0]["title"], "Submit report")
         self.assertEqual(reminders[1]["title"], "Midterm")
+
+    def test_build_reminder_email_body_formats_summary(self):
+        reminders = [
+            {"title": "Submit report", "kind": "task", "reminder_date": date(2026, 10, 5), "detail": "Task due on 2026-10-05"},
+            {"title": "Midterm", "kind": "exam", "reminder_date": date(2026, 10, 6), "detail": "Exam on 2026-10-06"},
+        ]
+
+        body = build_reminder_email_body(reminders, "Ava")
+
+        self.assertIn("Hi Ava", body)
+        self.assertIn("Submit report", body)
+        self.assertIn("Midterm", body)
+        self.assertIn("2 reminder(s)", body)
+
+    def test_calculate_grade_letter_for_score(self):
+        self.assertEqual(calculate_grade_letter(92), "A")
+        self.assertEqual(calculate_grade_letter(75), "B")
+        self.assertEqual(calculate_grade_letter(52), "C")
+        self.assertEqual(calculate_grade_letter(41), "D")
 
 
 if __name__ == "__main__":

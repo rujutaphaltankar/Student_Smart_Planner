@@ -43,9 +43,26 @@
             <a href="{{ url_for('notes') }}" class="{{ 'active' if request.endpoint == 'notes' }}">
                 <i class="bi bi-journal-text"></i> Notes
             </a>
+            <a href="{{ url_for('pomodoro') }}" class="{{ 'active' if request.endpoint == 'pomodoro' }}">
+                <i class="bi bi-stopwatch"></i> Pomodoro
+            </a>
+            <a href="{{ url_for('grades') }}" class="{{ 'active' if request.endpoint == 'grades' }}">
+                <i class="bi bi-clipboard-data"></i> Grades
+            </a>
+            <a href="{{ url_for('groups') }}" class="{{ 'active' if request.endpoint == 'groups' }}">
+                <i class="bi bi-people"></i> Study Groups
+            </a>
+            <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint == 'reports' }}">
+                <i class="bi bi-file-earmark-bar-graph"></i> Reports
+            </a>
             <a href="{{ url_for('progress') }}" class="{{ 'active' if request.endpoint == 'progress' }}">
                 <i class="bi bi-graph-up"></i> Progress
             </a>
+            {% if session.get('role') in ['teacher', 'admin'] %}
+            <a href="{{ url_for('teacher_board') }}" class="{{ 'active' if request.endpoint == 'teacher_board' }}">
+                <i class="bi bi-person-workspace"></i> Teacher Board
+            </a>
+            {% endif %}
             <a href="{{ url_for('profile') }}" class="{{ 'active' if request.endpoint == 'profile' }}">
                 <i class="bi bi-person-circle"></i> Profile
             </a>

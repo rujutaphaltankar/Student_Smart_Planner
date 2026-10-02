@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Teacher Board - Student Smart Planner{% endblock %}
+{% block page_title %}Teacher Board{% endblock %}
+{% block content %}
+<div class="panel-card">
+    <h5 class="mb-3"><i class="bi bi-person-workspace"></i> Student Overview</h5>
+    {% if students %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Tasks</th>
+                    <th>Grades</th>
+                    <th>Sessions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.email }}</td>
+                    <td>{{ student.task_total }}</td>
+                    <td>{{ student.grade_total }}</td>
+                    <td>{{ student.study_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No student data available yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

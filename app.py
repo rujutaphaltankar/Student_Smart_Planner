@@ -7,12 +7,14 @@ tasks/assignments, exams, and study schedules from one dashboard.
 Run with:  python app.py
 """
 
+import smtplib
 from calendar import monthrange
 from datetime import date, datetime, timedelta
+from email.message import EmailMessage
 from pathlib import Path
 
 import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
@@ -40,6 +42,24 @@ def get_next_due_date(current_due_date, recurrence_type, recurrence_interval=1):
         day = min(current_due_date.day, last_day)
         return current_due_date.replace(year=year, month=month, day=day)
     return current_due_date
+
+
+def calculate_grade_letter(score):
+    """Return a letter grade based on a percentage score."""
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        return "F"
+
+    if value >= 85:
+        return "A"
+    if value >= 70:
+        return "B"
+    if value >= 50:
+        return "C"
+    if value >= 35:
+        return "D"
+    return "F"
 
 
 def build_reminder_items(tasks, exams, today=None):
@@ -93,6 +113,69 @@ def build_reminder_items(tasks, exams, today=None):
     return reminders
 
 
+def build_reminder_email_body(reminders, user_name="Student"):
+    """Build the plain-text email body for upcoming reminders."""
+    if not reminders:
+        return (
+            f"Hi {user_name},\n\n"
+            "You currently have no upcoming reminders in Student Smart Planner.\n\n"
+            "Open the app to plan your next study session."
+        )
+
+    lines = [
+        f"Hi {user_name},",
+        "",
+        f"You have {len(reminders)} reminder(s) coming up:",
+        "",
+    ]
+
+    for index, reminder in enumerate(reminders, start=1):
+        reminder_date = reminder.get("reminder_date")
+        if hasattr(reminder_date, "isoformat"):
+            reminder_date = reminder_date.isoformat()
+        lines.append(
+            f"{index}. {reminder.get('title', 'Untitled')} ({reminder.get('kind', 'task').title()}) - {reminder_date}"
+        )
+        lines.append(f"   {reminder.get('detail', 'No additional details available.')}")
+
+    lines.extend([
+        "",
+        "Please review your planner and prepare in advance.",
+        "",
+        "Best,",
+        "Student Smart Planner",
+    ])
+    return "\n".join(lines)
+
+
+def send_reminder_email(user_email, user_name, reminders):
+    """Send a plain-text reminder summary by SMTP when the app is configured for email."""
+    smtp_host = app.config.get("SMTP_HOST")
+    if not smtp_host or not user_email:
+        return False
+
+    sender = app.config.get("SMTP_SENDER") or app.config.get("SMTP_USERNAME") or "noreply@studentplanner.local"
+    subject = f"Upcoming reminders: {len(reminders)} item(s)"
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = user_email
+    message["Subject"] = subject
+    message.set_content(build_reminder_email_body(reminders, user_name))
+
+    try:
+        with smtplib.SMTP(smtp_host, app.config.get("SMTP_PORT", 587), timeout=10) as server:
+            if app.config.get("SMTP_USE_TLS", True):
+                server.starttls()
+            username = app.config.get("SMTP_USERNAME")
+            password = app.config.get("SMTP_PASSWORD")
+            if username and password:
+                server.login(username, password)
+            server.send_message(message)
+        return True
+    except Exception:
+        return False
+
+
 # ------------------------------------------------------------
 # Database helper
 # ------------------------------------------------------------
@@ -122,6 +205,68 @@ def ensure_schema(connection):
             )
             """
         )
+
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = %s AND table_name = 'grades'",
+        (app.config["MYSQL_DB"],),
+    )
+    if cursor.fetchone()["total"] == 0:
+        cursor.execute(
+            """
+            CREATE TABLE grades (
+                grade_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                subject_id INT,
+                assessment_name VARCHAR(150) NOT NULL,
+                score DECIMAL(5,2) NOT NULL,
+                max_score DECIMAL(5,2) NOT NULL,
+                grade_date DATE NOT NULL,
+                remarks TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
+            )
+            """
+        )
+
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = %s AND table_name = 'study_groups'",
+        (app.config["MYSQL_DB"],),
+    )
+    if cursor.fetchone()["total"] == 0:
+        cursor.execute(
+            """
+            CREATE TABLE study_groups (
+                group_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                group_name VARCHAR(150) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE group_members (
+                group_member_id INT AUTO_INCREMENT PRIMARY KEY,
+                group_id INT NOT NULL,
+                user_id INT NOT NULL,
+                role ENUM('admin', 'member') NOT NULL DEFAULT 'member',
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_group_member (group_id, user_id),
+                FOREIGN KEY (group_id) REFERENCES study_groups(group_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+            """
+        )
+
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.columns WHERE table_schema = %s AND table_name = 'users' AND column_name = 'role'",
+        (app.config["MYSQL_DB"],),
+    )
+    if cursor.fetchone()["total"] == 0:
+        cursor.execute("ALTER TABLE users ADD COLUMN role ENUM('student', 'teacher', 'admin') NOT NULL DEFAULT 'student'")
 
     for table_name, column_specs in {
         "tasks": [
@@ -226,6 +371,9 @@ def register():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        role = request.form.get("role", "student").strip().lower()
+        if role not in {"student", "teacher", "admin"}:
+            role = "student"
 
         # ---- Validation ----
         if not full_name or not email or not password:
@@ -253,8 +401,8 @@ def register():
 
         password_hash = generate_password_hash(password)
         cursor.execute(
-            "INSERT INTO users (full_name, email, password_hash) VALUES (%s, %s, %s)",
-            (full_name, email, password_hash),
+            "INSERT INTO users (full_name, email, password_hash, role) VALUES (%s, %s, %s, %s)",
+            (full_name, email, password_hash, role),
         )
         conn.commit()
         cursor.close()
@@ -289,6 +437,7 @@ def login():
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = user["user_id"]
             session["full_name"] = user["full_name"]
+            session["role"] = user.get("role", "student")
             flash(f"Welcome back, {user['full_name']}!", "success")
             return redirect(url_for("dashboard"))
         else:
@@ -306,19 +455,21 @@ def demo_login():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT user_id, full_name FROM users WHERE email = %s", (demo_email,))
+    cursor.execute("SELECT user_id, full_name, role FROM users WHERE email = %s", (demo_email,))
     user = cursor.fetchone()
 
     if user:
         user_id = user["user_id"]
         full_name = user["full_name"]
+        role = user.get("role", "student")
     else:
         cursor.execute(
-            "INSERT INTO users (full_name, email, password_hash) VALUES (%s, %s, %s)",
-            ("Demo Student", demo_email, generate_password_hash("demo123")),
+            "INSERT INTO users (full_name, email, password_hash, role) VALUES (%s, %s, %s, %s)",
+            ("Demo Student", demo_email, generate_password_hash("demo123"), "student"),
         )
         user_id = cursor.lastrowid
         full_name = "Demo Student"
+        role = "student"
 
     cursor.execute("SELECT COUNT(*) AS total FROM subjects WHERE user_id = %s", (user_id,))
     has_subjects = cursor.fetchone()["total"] > 0
@@ -376,6 +527,7 @@ def demo_login():
     session.clear()
     session["user_id"] = user_id
     session["full_name"] = full_name
+    session["role"] = role
     flash("Demo account loaded. You are using the full planner system.", "success")
     return redirect(url_for("dashboard"))
 
@@ -1084,6 +1236,317 @@ def calendar_view():
     return render_template("calendar.html", events=events)
 
 
+@app.route("/pomodoro")
+@login_required
+def pomodoro():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT COUNT(*) AS total FROM tasks WHERE user_id = %s AND status = 'Pending'", (user_id,))
+    pending_tasks = cursor.fetchone()["total"]
+    cursor.execute("SELECT SUM(duration_minutes) AS total_minutes FROM study_sessions WHERE user_id = %s", (user_id,))
+    total_minutes = cursor.fetchone()["total_minutes"] or 0
+    cursor.close(); conn.close()
+    return render_template("pomodoro.html", pending_tasks=pending_tasks, total_minutes=total_minutes)
+
+
+@app.route("/grades")
+@login_required
+def grades():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT g.*, s.subject_name FROM grades g
+           LEFT JOIN subjects s ON g.subject_id = s.subject_id
+           WHERE g.user_id = %s ORDER BY g.grade_date DESC""",
+        (user_id,),
+    )
+    grade_list = cursor.fetchall()
+    for grade in grade_list:
+        grade["percentage"] = round((grade["score"] / grade["max_score"]) * 100, 1) if grade["max_score"] else 0
+        grade["letter_grade"] = calculate_grade_letter(grade["percentage"])
+
+    cursor.execute("SELECT * FROM subjects WHERE user_id = %s ORDER BY subject_name", (user_id,))
+    subject_list = cursor.fetchall()
+    cursor.execute("SELECT AVG((score / max_score) * 100) AS average FROM grades WHERE user_id = %s", (user_id,))
+    average_score = cursor.fetchone()["average"] or 0
+    cursor.close(); conn.close()
+    return render_template(
+        "grades.html",
+        grades=grade_list,
+        subjects=subject_list,
+        average_score=round(float(average_score), 1),
+        overall_letter=calculate_grade_letter(average_score),
+    )
+
+
+@app.route("/grades/add", methods=["POST"])
+@login_required
+def add_grade():
+    user_id = session["user_id"]
+    subject_id = request.form.get("subject_id") or None
+    assessment_name = request.form.get("assessment_name", "").strip()
+    score = request.form.get("score", "")
+    max_score = request.form.get("max_score", "")
+    grade_date = request.form.get("grade_date", "")
+    remarks = request.form.get("remarks", "").strip()
+
+    if not assessment_name or not score or not max_score or not grade_date:
+        flash("Assessment name, score, maximum score, and date are required.", "danger")
+        return redirect(url_for("grades"))
+
+    try:
+        score_value = float(score)
+        max_score_value = float(max_score)
+    except ValueError:
+        flash("Scores must be numeric values.", "danger")
+        return redirect(url_for("grades"))
+
+    if max_score_value <= 0:
+        flash("Maximum score must be greater than zero.", "danger")
+        return redirect(url_for("grades"))
+
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute(
+        """INSERT INTO grades (user_id, subject_id, assessment_name, score, max_score, grade_date, remarks)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+        (user_id, subject_id, assessment_name, score_value, max_score_value, grade_date, remarks),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Grade saved successfully.", "success")
+    return redirect(url_for("grades"))
+
+
+@app.route("/grades/edit/<int:grade_id>", methods=["POST"])
+@login_required
+def edit_grade(grade_id):
+    user_id = session["user_id"]
+    subject_id = request.form.get("subject_id") or None
+    assessment_name = request.form.get("assessment_name", "").strip()
+    score = request.form.get("score", "")
+    max_score = request.form.get("max_score", "")
+    grade_date = request.form.get("grade_date", "")
+    remarks = request.form.get("remarks", "").strip()
+
+    if not assessment_name or not score or not max_score or not grade_date:
+        flash("Assessment name, score, maximum score, and date are required.", "danger")
+        return redirect(url_for("grades"))
+
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE grades SET subject_id=%s, assessment_name=%s, score=%s, max_score=%s, grade_date=%s, remarks=%s
+           WHERE grade_id=%s AND user_id=%s""",
+        (subject_id, assessment_name, float(score), float(max_score), grade_date, remarks, grade_id, user_id),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Grade updated successfully.", "success")
+    return redirect(url_for("grades"))
+
+
+@app.route("/grades/delete/<int:grade_id>", methods=["POST"])
+@login_required
+def delete_grade(grade_id):
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute("DELETE FROM grades WHERE grade_id=%s AND user_id=%s", (grade_id, user_id))
+    conn.commit(); cursor.close(); conn.close()
+    flash("Grade deleted.", "info")
+    return redirect(url_for("grades"))
+
+
+@app.route("/groups")
+@login_required
+def groups():
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT sg.*, gm.role, u.full_name as created_by_name
+           FROM study_groups sg
+           JOIN group_members gm ON gm.group_id = sg.group_id
+           LEFT JOIN users u ON u.user_id = sg.user_id
+           WHERE gm.user_id = %s ORDER BY sg.created_at DESC""",
+        (user_id,),
+    )
+    my_groups = cursor.fetchall()
+
+    for group in my_groups:
+        cursor.execute(
+            """SELECT gm.role, u.full_name, u.email
+               FROM group_members gm
+               JOIN users u ON u.user_id = gm.user_id
+               WHERE gm.group_id = %s ORDER BY u.full_name""",
+            (group["group_id"],),
+        )
+        group["members"] = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM subjects WHERE user_id = %s ORDER BY subject_name", (user_id,))
+    subject_list = cursor.fetchall()
+    cursor.close(); conn.close()
+    return render_template("groups.html", groups=my_groups, subjects=subject_list)
+
+
+@app.route("/groups/add", methods=["POST"])
+@login_required
+def add_group():
+    user_id = session["user_id"]
+    group_name = request.form.get("group_name", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not group_name:
+        flash("Group name is required.", "danger")
+        return redirect(url_for("groups"))
+
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO study_groups (user_id, group_name, description) VALUES (%s, %s, %s)",
+        (user_id, group_name, description),
+    )
+    group_id = cursor.lastrowid
+    cursor.execute(
+        "INSERT INTO group_members (group_id, user_id, role) VALUES (%s, %s, 'admin')",
+        (group_id, user_id),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Study group created.", "success")
+    return redirect(url_for("groups"))
+
+
+@app.route("/groups/<int:group_id>/add-member", methods=["POST"])
+@login_required
+def add_group_member(group_id):
+    user_id = session["user_id"]
+    member_email = request.form.get("member_email", "").strip().lower()
+
+    if not member_email:
+        flash("Please enter a member email.", "danger")
+        return redirect(url_for("groups"))
+
+    conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT user_id, full_name FROM users WHERE email = %s", (member_email,))
+    member = cursor.fetchone()
+    if not member:
+        cursor.close(); conn.close()
+        flash("No matching user found for that email.", "warning")
+        return redirect(url_for("groups"))
+
+    if member["user_id"] == user_id:
+        cursor.close(); conn.close()
+        flash("You are already a member of the group.", "info")
+        return redirect(url_for("groups"))
+
+    cursor.execute(
+        "SELECT 1 FROM group_members WHERE group_id = %s AND user_id = %s",
+        (group_id, member["user_id"]),
+    )
+    existing = cursor.fetchone()
+    if existing:
+        cursor.close(); conn.close()
+        flash("This user is already in the study group.", "info")
+        return redirect(url_for("groups"))
+
+    cursor.execute(
+        "INSERT INTO group_members (group_id, user_id, role) VALUES (%s, %s, 'member')",
+        (group_id, member["user_id"]),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Member added to the study group.", "success")
+    return redirect(url_for("groups"))
+
+
+@app.route("/groups/<int:group_id>/leave", methods=["POST"])
+@login_required
+def leave_group(group_id):
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute("DELETE FROM group_members WHERE group_id = %s AND user_id = %s", (group_id, user_id))
+    conn.commit(); cursor.close(); conn.close()
+    flash("You left the study group.", "info")
+    return redirect(url_for("groups"))
+
+
+@app.route("/reports")
+@login_required
+def reports():
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT COUNT(*) AS total FROM tasks WHERE user_id = %s", (user_id,))
+    total_tasks = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS total FROM tasks WHERE user_id = %s AND status = 'Pending'", (user_id,))
+    pending_tasks = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS total FROM tasks WHERE user_id = %s AND status = 'Completed'", (user_id,))
+    completed_tasks = cursor.fetchone()["total"]
+    cursor.execute("SELECT COUNT(*) AS total FROM exams WHERE user_id = %s", (user_id,))
+    total_exams = cursor.fetchone()["total"]
+    cursor.execute("SELECT AVG((score / max_score) * 100) AS average FROM grades WHERE user_id = %s", (user_id,))
+    average_grade = cursor.fetchone()["average"] or 0
+    cursor.execute("SELECT COUNT(*) AS total FROM study_sessions WHERE user_id = %s", (user_id,))
+    total_sessions = cursor.fetchone()["total"]
+    cursor.execute("SELECT * FROM tasks WHERE user_id = %s ORDER BY due_date ASC LIMIT 10", (user_id,))
+    task_rows = cursor.fetchall()
+    cursor.close(); conn.close()
+
+    return render_template(
+        "reports.html",
+        total_tasks=total_tasks,
+        pending_tasks=pending_tasks,
+        completed_tasks=completed_tasks,
+        total_exams=total_exams,
+        average_grade=round(float(average_grade), 1),
+        total_sessions=total_sessions,
+        tasks=task_rows,
+    )
+
+
+@app.route("/reports/export.csv")
+@login_required
+def export_reports_csv():
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT task_id, title, due_date, status, priority FROM tasks WHERE user_id = %s ORDER BY due_date ASC", (user_id,))
+    tasks = cursor.fetchall()
+    cursor.execute("SELECT grade_id, assessment_name, score, max_score, grade_date FROM grades WHERE user_id = %s ORDER BY grade_date DESC", (user_id,))
+    grades = cursor.fetchall()
+    cursor.close(); conn.close()
+
+    csv_lines = ["type,identifier,name,date,status,score,max_score"]
+
+    for task in tasks:
+        csv_lines.append(
+            f"task,{task['task_id']},{task['title']},{task['due_date']},{task['status']},,,"
+        )
+    for grade in grades:
+        csv_lines.append(
+            f"grade,{grade['grade_id']},{grade['assessment_name']},{grade['grade_date']},,,{grade['score']},{grade['max_score']}"
+        )
+
+    csv_content = "\n".join(csv_lines)
+    return Response(csv_content, mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=student-smart-planner-report.csv"})
+
+
+@app.route("/teacher-board")
+@login_required
+def teacher_board():
+    if session.get("role") not in {"teacher", "admin"}:
+        flash("This area is only available to teachers and administrators.", "warning")
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT u.user_id, u.full_name, u.email, u.role,
+                  (SELECT COUNT(*) FROM tasks t WHERE t.user_id = u.user_id) AS task_total,
+                  (SELECT COUNT(*) FROM grades g WHERE g.user_id = u.user_id) AS grade_total,
+                  (SELECT COUNT(*) FROM study_sessions ss WHERE ss.user_id = u.user_id) AS study_total
+           FROM users u
+           WHERE u.role = 'student'
+           ORDER BY u.full_name ASC"""
+    )
+    student_rows = cursor.fetchall()
+    cursor.close(); conn.close()
+    return render_template("teacher_board.html", students=student_rows)
+
+
 # ==============================================================
 # NOTES & REMINDERS
 # ==============================================================
@@ -1113,6 +1576,54 @@ def reminders():
 
     reminder_items = build_reminder_items(tasks, exams, date.today())
     return render_template("reminders.html", reminders=reminder_items)
+
+
+@app.route("/reminders/send-email", methods=["POST"])
+@login_required
+def send_reminder_email_route():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT full_name, email FROM users WHERE user_id = %s",
+        (user_id,),
+    )
+    user = cursor.fetchone()
+
+    cursor.execute(
+        """SELECT t.*, s.subject_name FROM tasks t
+           LEFT JOIN subjects s ON t.subject_id = s.subject_id
+           WHERE t.user_id = %s AND t.status = 'Pending'""",
+        (user_id,),
+    )
+    tasks = cursor.fetchall()
+
+    cursor.execute(
+        """SELECT e.*, s.subject_name FROM exams e
+           LEFT JOIN subjects s ON e.subject_id = s.subject_id
+           WHERE e.user_id = %s""",
+        (user_id,),
+    )
+    exams = cursor.fetchall()
+    cursor.close(); conn.close()
+
+    reminder_items = build_reminder_items(tasks, exams, date.today())
+
+    if not user or not user.get("email"):
+        flash("Add an email address to your profile before sending reminder emails.", "warning")
+        return redirect(url_for("reminders"))
+
+    if not app.config.get("SMTP_HOST"):
+        flash("SMTP is not configured. Add SMTP_HOST and related values to enable email reminders.", "warning")
+        return redirect(url_for("reminders"))
+
+    if send_reminder_email(user["email"], user["full_name"], reminder_items):
+        flash("Reminder email sent successfully.", "success")
+    else:
+        flash("Unable to send the reminder email. Check your SMTP configuration.", "danger")
+
+    return redirect(url_for("reminders"))
 
 
 @app.route("/notes")

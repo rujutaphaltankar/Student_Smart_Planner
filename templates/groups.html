@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Study Groups - Student Smart Planner{% endblock %}
+{% block page_title %}Study Groups{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="panel-card">
+            <h5 class="mb-3"><i class="bi bi-people-fill"></i> Create Study Group</h5>
+            <form method="post" action="{{ url_for('add_group') }}">
+                <div class="mb-3">
+                    <label class="form-label">Group name</label>
+                    <input type="text" class="form-control" name="group_name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3" placeholder="Revision plan, goals, or study focus"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Create group</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="panel-card">
+            <h5 class="mb-3"><i class="bi bi-person-plus"></i> Add Member</h5>
+            <form method="post" action="{{ url_for('add_group_member', group_id=groups[0].group_id) if groups else '#' }}">
+                <div class="input-group">
+                    <input type="email" class="form-control" name="member_email" placeholder="Enter teammate email" required>
+                    <button type="submit" class="btn btn-outline-primary" {% if not groups %}disabled{% endif %}>Add</button>
+                </div>
+            </form>
+            {% if not groups %}
+            <p class="text-muted mt-3 mb-0">Create a group first to start inviting teammates.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="panel-card mt-4">
+    <h5 class="mb-3"><i class="bi bi-collection"></i> My Study Groups</h5>
+    {% if groups %}
+    <div class="row g-3">
+        {% for group in groups %}
+        <div class="col-lg-6">
+            <div class="border rounded p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">{{ group.group_name }}</h6>
+                        <small class="text-muted">Created by {{ group.created_by_name or 'You' }}</small>
+                    </div>
+                    <span class="badge bg-light text-dark">{{ group.role|title }}</span>
+                </div>
+                <p class="text-muted mt-2 mb-3">{{ group.description or 'No description yet.' }}</p>
+                <div class="mb-3">
+                    <small class="text-uppercase text-muted">Members</small>
+                    <ul class="simple-list compact mt-2">
+                        {% for member in group.members %}
+                        <li>{{ member.full_name }} <small>({{ member.email }})</small></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <form method="post" action="{{ url_for('add_group_member', group_id=group.group_id) }}" class="row g-2 mb-2">
+                    <div class="col">
+                        <input type="email" class="form-control form-control-sm" name="member_email" placeholder="Add teammate by email" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
+                    </div>
+                </form>
+                <form method="post" action="{{ url_for('leave_group', group_id=group.group_id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Leave group</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">You are not in any study groups yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

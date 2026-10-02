@@ -37,6 +37,14 @@
                 <label class="form-label">Confirm Password</label>
                 <input type="password" class="form-control" name="confirm_password" required placeholder="Re-enter password">
             </div>
+            <div class="mb-3">
+                <label class="form-label">Role</label>
+                <select class="form-select" name="role">
+                    <option value="student" selected>Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
             <button type="submit" class="btn btn-primary w-100">Register</button>
         </form>
         <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Log in here</a></p>

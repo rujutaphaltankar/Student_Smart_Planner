@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Pomodoro Timer - Student Smart Planner{% endblock %}
+{% block page_title %}Pomodoro Timer{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="panel-card text-center">
+            <h5 class="mb-3"><i class="bi bi-stopwatch"></i> Focus Timer</h5>
+            <div class="pomodoro-display" id="timerDisplay">25:00</div>
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <button class="btn btn-primary" id="startTimerBtn">Start</button>
+                <button class="btn btn-outline-secondary" id="pauseTimerBtn">Pause</button>
+                <button class="btn btn-outline-danger" id="resetTimerBtn">Reset</button>
+            </div>
+            <div class="mt-4">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active timer-mode" data-minutes="25">25 min</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary timer-mode" data-minutes="50">50 min</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary timer-mode" data-minutes="15">15 min break</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel-card">
+            <h5><i class="bi bi-graph-up"></i> Focus Summary</h5>
+            <div class="stat-inline">
+                <span>Pending tasks</span>
+                <strong>{{ pending_tasks }}</strong>
+            </div>
+            <div class="stat-inline">
+                <span>Study minutes logged</span>
+                <strong>{{ total_minutes }} min</strong>
+            </div>
+            <div class="mt-3">
+                <p class="text-muted mb-2">Pomodoro technique suggestion:</p>
+                <ul class="simple-list compact">
+                    <li>Work on one task for the full cycle.</li>
+                    <li>Take a 5-minute break after each session.</li>
+                    <li>Use the timer to reduce multitasking and improve focus.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const timerDisplay = document.getElementById('timerDisplay');
+const startBtn = document.getElementById('startTimerBtn');
+const pauseBtn = document.getElementById('pauseTimerBtn');
+const resetBtn = document.getElementById('resetTimerBtn');
+const modeButtons = document.querySelectorAll('.timer-mode');
+
+let totalSeconds = 25 * 60;
+let timerId = null;
+let running = false;
+
+function updateDisplay() {
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    timerDisplay.textContent = `${minutes}:${seconds}`;
+}
+
+function startTimer() {
+    if (running) return;
+    running = true;
+    timerId = setInterval(() => {
+        if (totalSeconds > 0) {
+            totalSeconds -= 1;
+            updateDisplay();
+        } else {
+            clearInterval(timerId);
+            running = false;
+            alert('Focus session completed. Take a short break.');
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    running = false;
+    clearInterval(timerId);
+}
+
+function resetTimer() {
+    pauseTimer();
+    totalSeconds = 25 * 60;
+    updateDisplay();
+}
+
+modeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        modeButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        totalSeconds = Number(button.dataset.minutes) * 60;
+        pauseTimer();
+        updateDisplay();
+    });
+});
+
+startBtn.addEventListener('click', startTimer);
+pauseBtn.addEventListener('click', pauseTimer);
+resetBtn.addEventListener('click', resetTimer);
+updateDisplay();
+</script>
+{% endblock %}

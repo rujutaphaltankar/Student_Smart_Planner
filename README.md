@@ -17,7 +17,7 @@ with a clean, beginner-friendly codebase suitable for a college viva.
 - **Tasks & Assignments** — full CRUD, priority levels, status tracking, overdue highlighting, filtering, and recurring task support.
 - **Recurring Tasks** — recurring assignments can repeat daily, weekly, or monthly and automatically generate the next deadline after completion.
 - **Exam Tracker** — add exams with date, time, venue, notes, and reminder timing before the event.
-- **Reminders** — upcoming task and exam reminders appear in a dedicated reminder view using custom reminder windows.
+- **Reminders** — upcoming task and exam reminders appear in a dedicated reminder view using custom reminder windows, with optional SMTP email summaries when configured.
 - **Notes & Resources** — save subject notes, revision points, external links, and tagged study resources.
 - **Study Schedule** — plan study sessions by subject, topic, date, start time, and duration; edit/delete sessions.
 - **Calendar** — a month-view calendar combining tasks, exams, and study sessions with color-coded indicators.
@@ -107,7 +107,18 @@ student-smart-planner/
    ```bash
    copy .env.example .env
    ```
-   Then update the values for your local MySQL setup.
+   Then update the values for your local MySQL setup and optionally add SMTP settings for reminder emails.
+
+5. **Optional email reminder setup:**
+   ```env
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your-email@gmail.com
+   SMTP_PASSWORD=your-app-password
+   SMTP_SENDER=noreply@studentplanner.local
+   SMTP_USE_TLS=true
+   ```
+   When configured, the reminders page can send a plain-text email summary to the signed-in user's email address.
 
 ---
 
