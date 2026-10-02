@@ -84,6 +84,25 @@
                                         <label class="form-label">Due Date *</label>
                                         <input type="date" name="due_date" class="form-control" value="{{ task.due_date }}" required>
                                     </div>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Reminder days before</label>
+                                            <input type="number" min="0" name="reminder_days_before" class="form-control" value="{{ task.reminder_days_before or 1 }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Recurrence</label>
+                                            <select name="recurrence_type" class="form-select">
+                                                <option value="" {{ 'selected' if not task.recurrence_type }}>None</option>
+                                                <option value="daily" {{ 'selected' if task.recurrence_type == 'daily' }}>Daily</option>
+                                                <option value="weekly" {{ 'selected' if task.recurrence_type == 'weekly' }}>Weekly</option>
+                                                <option value="monthly" {{ 'selected' if task.recurrence_type == 'monthly' }}>Monthly</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 mt-3">
+                                        <label class="form-label">Repeat every</label>
+                                        <input type="number" min="1" name="recurrence_interval" class="form-control" value="{{ task.recurrence_interval or 1 }}">
+                                    </div>
                                     <div class="mb-3">
                                         <label class="form-label">Priority</label>
                                         <select name="priority" class="form-select">
@@ -146,6 +165,25 @@
                     <div class="mb-3">
                         <label class="form-label">Due Date *</label>
                         <input type="date" name="due_date" class="form-control" required>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Reminder days before</label>
+                            <input type="number" min="0" name="reminder_days_before" class="form-control" value="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Recurrence</label>
+                            <select name="recurrence_type" class="form-select">
+                                <option value="" selected>None</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Repeat every</label>
+                        <input type="number" min="1" name="recurrence_interval" class="form-control" value="1">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Priority</label>

@@ -81,6 +81,10 @@
                             <input type="text" name="venue" class="form-control" value="{{ exam.venue or '' }}">
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Reminder days before</label>
+                            <input type="number" min="0" name="reminder_days_before" class="form-control" value="{{ exam.reminder_days_before or 3 }}">
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Notes</label>
                             <textarea name="notes" class="form-control" rows="2">{{ exam.notes or '' }}</textarea>
                         </div>
@@ -136,6 +140,10 @@
                     <div class="mb-3">
                         <label class="form-label">Venue</label>
                         <input type="text" name="venue" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reminder days before</label>
+                        <input type="number" min="0" name="reminder_days_before" class="form-control" value="3">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>

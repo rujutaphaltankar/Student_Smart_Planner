@@ -37,6 +37,12 @@
             <a href="{{ url_for('calendar_view') }}" class="{{ 'active' if request.endpoint == 'calendar_view' }}">
                 <i class="bi bi-calendar3"></i> Calendar
             </a>
+            <a href="{{ url_for('reminders') }}" class="{{ 'active' if request.endpoint == 'reminders' }}">
+                <i class="bi bi-bell"></i> Reminders
+            </a>
+            <a href="{{ url_for('notes') }}" class="{{ 'active' if request.endpoint == 'notes' }}">
+                <i class="bi bi-journal-text"></i> Notes
+            </a>
             <a href="{{ url_for('progress') }}" class="{{ 'active' if request.endpoint == 'progress' }}">
                 <i class="bi bi-graph-up"></i> Progress
             </a>

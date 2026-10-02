@@ -11,26 +11,31 @@ with a clean, beginner-friendly codebase suitable for a college viva.
 
 ## Features
 
-- **Authentication** — registration, login, logout, hashed passwords, session-based access control. Each user sees only their own data.
-- **Dashboard** — welcome message, subject/task counts, completion percentage, upcoming deadlines, upcoming exams, today's study schedule, high-priority tasks, and a progress chart.
-- **Subjects** — add, edit, delete, and view subjects (name, code, teacher, description).
-- **Tasks & Assignments** — full CRUD, priority levels (High/Medium/Low), status (Pending/Completed), filtering by subject/priority/status/due date, overdue highlighting.
-- **Exam Tracker** — add exams with date, time, venue, and notes; shows days remaining and highlights exams coming up soon.
-- **Study Schedule** — plan study sessions by subject, topic, date, time, and duration; edit/delete sessions.
+- **Authentication** — registration, login, logout, hashed passwords, and session-based access control scoped to each user.
+- **Dashboard** — overview of subjects, task completion, upcoming deadlines, upcoming exams, daily study schedule, high-priority tasks, and a completion chart.
+- **Subjects** — add, edit, delete, and view subjects with teacher and course information.
+- **Tasks & Assignments** — full CRUD, priority levels, status tracking, overdue highlighting, filtering, and recurring task support.
+- **Recurring Tasks** — recurring assignments can repeat daily, weekly, or monthly and automatically generate the next deadline after completion.
+- **Exam Tracker** — add exams with date, time, venue, notes, and reminder timing before the event.
+- **Reminders** — upcoming task and exam reminders appear in a dedicated reminder view using custom reminder windows.
+- **Notes & Resources** — save subject notes, revision points, external links, and tagged study resources.
+- **Study Schedule** — plan study sessions by subject, topic, date, start time, and duration; edit/delete sessions.
 - **Calendar** — a month-view calendar combining tasks, exams, and study sessions with color-coded indicators.
-- **Progress Tracking** — doughnut chart (completed vs pending vs overdue) and bar chart (subject-wise completion) using Chart.js.
-- **Search & Filters** — search subjects, tasks, and exams; filter tasks by subject, priority, status, and due date.
-- **Light / Dark Mode** — toggle saved in the browser via `localStorage`.
-- **Responsive UI** — sidebar navigation, cards, tables, modals, and mobile-friendly layout.
+- **Progress Tracking** — doughnut chart for completed vs pending tasks and subject-wise progress views.
+- **Search & Filters** — search tasks, subjects, and exams; filter by subject, status, priority, or date.
+- **Light / Dark Mode** — theme toggle stored in the browser.
+- **Responsive UI** — sidebar navigation, cards, table views, modals, and mobile-friendly layout.
+- **Deployment Basics** — Docker, Gunicorn, environment-based config, and health-check endpoints are included for deployment readiness.
 
 ---
 
 ## Technology Stack
 
 **Frontend:** HTML5, CSS3, JavaScript, Bootstrap 5, Chart.js
-**Backend:** Python, Flask
+**Backend:** Python, Flask, Gunicorn
 **Database:** MySQL
 **Auth:** Flask sessions + Werkzeug password hashing
+**Deployment:** Docker, Docker Compose, environment variables
 
 ---
 
@@ -46,9 +51,15 @@ with a clean, beginner-friendly codebase suitable for a college viva.
 
 ```
 student-smart-planner/
-├── app.py                  # Main Flask application (routes + logic)
-├── config.py                # Configuration (DB credentials, secret key)
-├── requirements.txt          # Python dependencies
+├── app.py                     # Main Flask application
+├── config.py                  # Configuration and environment settings
+├── wsgi.py                    # WSGI entry point for production deployment
+├── Dockerfile                 # Container build file
+├── docker-compose.yml         # Local multi-container deployment setup
+├── .env.example               # Example environment variables
+├── requirements.txt           # Python dependencies
+├── tests/
+│   └── test_planner_helpers.py
 ├── database/
 │   └── schema.sql             # MySQL table definitions
 ├── templates/                 # Jinja2 HTML templates
@@ -62,13 +73,17 @@ student-smart-planner/
 │   ├── schedule.html
 │   ├── calendar.html
 │   ├── progress.html
+│   ├── reminders.html
+│   ├── notes.html
 │   └── profile.html
 ├── static/
 │   ├── css/style.css
-│   ├── js/script.js           # sidebar + theme toggle
-│   ├── js/calendar.js         # calendar rendering
+│   ├── js/script.js
+│   ├── js/calendar.js
 │   └── images/
-└── README.md
+├── PROJECT_ANALYSIS_AND_ENHANCEMENT_PLAN.md
+├── README.md
+└── .gitignore
 ```
 
 ---
@@ -87,6 +102,12 @@ student-smart-planner/
    ```bash
    pip install -r requirements.txt
    ```
+
+4. **Create environment variables:**
+   ```bash
+   copy .env.example .env
+   ```
+   Then update the values for your local MySQL setup.
 
 ---
 
@@ -119,12 +140,29 @@ student-smart-planner/
 
 ## How to Run the Application
 
+### Local development
+
 ```bash
 python app.py
 ```
 
-The app will start on **http://127.0.0.1:5000/**. Open this URL in your
-browser, register a new account, and log in to start using the planner.
+The app will start on **http://127.0.0.1:5000/**.
+
+### Docker deployment
+
+```bash
+docker-compose up --build
+```
+
+This runs the Flask app and MySQL database together in containers.
+
+### Production server
+
+```bash
+gunicorn --bind 0.0.0.0:5000 wsgi:app
+```
+
+Open the URL in your browser, register a new account, and log in to start using the planner.
 
 ---
 

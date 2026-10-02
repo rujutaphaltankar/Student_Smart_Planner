@@ -51,6 +51,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date DATE NOT NULL,
     priority ENUM('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
     status ENUM('Pending', 'Completed') NOT NULL DEFAULT 'Pending',
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurrence_type ENUM('daily', 'weekly', 'monthly') NULL,
+    recurrence_interval INT NOT NULL DEFAULT 1,
+    reminder_days_before INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
@@ -68,6 +72,7 @@ CREATE TABLE IF NOT EXISTS exams (
     exam_time TIME,
     venue VARCHAR(150),
     notes TEXT,
+    reminder_days_before INT NOT NULL DEFAULT 3,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
@@ -86,6 +91,20 @@ CREATE TABLE IF NOT EXISTS study_sessions (
     duration_minutes INT NOT NULL,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+    note_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    subject_id INT,
+    title VARCHAR(150) NOT NULL,
+    content TEXT,
+    resource_url VARCHAR(255),
+    tags VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
 );

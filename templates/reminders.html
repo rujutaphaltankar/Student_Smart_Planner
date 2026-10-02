@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Reminders - Student Smart Planner{% endblock %}
+{% block page_title %}Reminders{% endblock %}
+{% block content %}
+<div class="panel-card">
+    <div class="task-list-header">
+        <h5 class="mb-0"><i class="bi bi-bell"></i> Upcoming Reminders</h5>
+    </div>
+
+    {% if reminders %}
+    <div class="list-group">
+        {% for reminder in reminders %}
+        <a href="{{ reminder.link }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
+            <div>
+                <div class="fw-semibold">{{ reminder.title }}</div>
+                <small class="text-muted">{{ reminder.detail }} · {{ reminder.subject_name }}</small>
+            </div>
+            <span class="badge bg-primary rounded-pill">{{ reminder.reminder_date }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 py-4 text-center">No reminders scheduled right now.</p>
+    {% endif %}
+</div>
+{% endblock %}

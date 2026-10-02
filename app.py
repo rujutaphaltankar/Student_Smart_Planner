@@ -7,6 +7,7 @@ tasks/assignments, exams, and study schedules from one dashboard.
 Run with:  python app.py
 """
 
+from calendar import monthrange
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -20,9 +21,135 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 
+def get_next_due_date(current_due_date, recurrence_type, recurrence_interval=1):
+    """Return the next occurrence date for a recurring task."""
+    if not recurrence_type or recurrence_type == "none":
+        return current_due_date
+
+    step = max(1, int(recurrence_interval or 1))
+
+    if recurrence_type == "daily":
+        return current_due_date + timedelta(days=step)
+    if recurrence_type == "weekly":
+        return current_due_date + timedelta(days=7 * step)
+    if recurrence_type == "monthly":
+        month = current_due_date.month - 1 + step
+        year = current_due_date.year + month // 12
+        month = month % 12 + 1
+        last_day = monthrange(year, month)[1]
+        day = min(current_due_date.day, last_day)
+        return current_due_date.replace(year=year, month=month, day=day)
+    return current_due_date
+
+
+def build_reminder_items(tasks, exams, today=None):
+    """Create a normalized reminder list from tasks and exams."""
+    reference_day = today or date.today()
+    reminders = []
+
+    def safe_url(endpoint):
+        try:
+            from flask import current_app
+            current_app._get_current_object()
+            return url_for(endpoint)
+        except RuntimeError:
+            return "/tasks" if endpoint == "tasks" else "/exams"
+
+    for task in tasks or []:
+        if task.get("status") == "Completed":
+            continue
+        due_date = task.get("due_date")
+        if not due_date:
+            continue
+        reminder_days = int(task.get("reminder_days_before") or 1)
+        reminder_date = due_date - timedelta(days=reminder_days)
+        if reminder_date >= reference_day:
+            reminders.append({
+                "title": task.get("title"),
+                "detail": f"Task due on {due_date}",
+                "reminder_date": reminder_date,
+                "kind": "task",
+                "link": safe_url("tasks"),
+                "subject_name": task.get("subject_name") or "General",
+            })
+
+    for exam in exams or []:
+        exam_date = exam.get("exam_date")
+        if not exam_date:
+            continue
+        reminder_days = int(exam.get("reminder_days_before") or 3)
+        reminder_date = exam_date - timedelta(days=reminder_days)
+        if reminder_date >= reference_day:
+            reminders.append({
+                "title": exam.get("exam_name") or "Exam",
+                "detail": f"Exam on {exam_date}",
+                "reminder_date": reminder_date,
+                "kind": "exam",
+                "link": safe_url("exams"),
+                "subject_name": exam.get("subject_name") or "General",
+            })
+
+    reminders.sort(key=lambda item: item["reminder_date"])
+    return reminders
+
+
 # ------------------------------------------------------------
 # Database helper
 # ------------------------------------------------------------
+def ensure_schema(connection):
+    """Ensure required tables and columns exist for the current app version."""
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = %s AND table_name = 'notes'",
+        (app.config["MYSQL_DB"],),
+    )
+    if cursor.fetchone()["total"] == 0:
+        cursor.execute(
+            """
+            CREATE TABLE notes (
+                note_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                subject_id INT,
+                title VARCHAR(150) NOT NULL,
+                content TEXT,
+                resource_url VARCHAR(255),
+                tags VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE SET NULL
+            )
+            """
+        )
+
+    for table_name, column_specs in {
+        "tasks": [
+            ("is_recurring", "BOOLEAN NOT NULL DEFAULT FALSE"),
+            ("recurrence_type", "ENUM('daily', 'weekly', 'monthly') NULL DEFAULT NULL"),
+            ("recurrence_interval", "INT NOT NULL DEFAULT 1"),
+            ("reminder_days_before", "INT NOT NULL DEFAULT 1"),
+        ],
+        "exams": [
+            ("reminder_days_before", "INT NOT NULL DEFAULT 3"),
+        ],
+    }.items():
+        for column_name, column_def in column_specs:
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM information_schema.columns
+                WHERE table_schema = %s AND table_name = %s AND column_name = %s
+                """,
+                (app.config["MYSQL_DB"], table_name, column_name),
+            )
+            if cursor.fetchone()["total"] == 0:
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
+
+    connection.commit()
+    cursor.close()
+
+
 def get_db_connection():
     """Open a new MySQL connection using settings from config.py."""
     connection_options = {
@@ -33,10 +160,12 @@ def get_db_connection():
     }
 
     try:
-        return mysql.connector.connect(
+        connection = mysql.connector.connect(
             **connection_options,
             database=app.config["MYSQL_DB"],
         )
+        ensure_schema(connection)
+        return connection
     except mysql.connector.Error as error:
         if error.errno != 1049:
             raise
@@ -52,10 +181,12 @@ def get_db_connection():
         setup_cursor.close()
         setup_connection.close()
 
-        return mysql.connector.connect(
+        connection = mysql.connector.connect(
             **connection_options,
             database=app.config["MYSQL_DB"],
         )
+        ensure_schema(connection)
+        return connection
 
 
 # ------------------------------------------------------------
@@ -309,6 +440,25 @@ def dashboard():
         exam["days_remaining"] = (exam["exam_date"] - date.today()).days
 
     cursor.execute(
+        """SELECT t.*, s.subject_name FROM tasks t
+           LEFT JOIN subjects s ON t.subject_id = s.subject_id
+           WHERE t.user_id = %s AND t.status = 'Pending'
+           ORDER BY t.due_date ASC""",
+        (user_id,),
+    )
+    reminder_tasks = cursor.fetchall()
+
+    cursor.execute(
+        """SELECT e.*, s.subject_name FROM exams e
+           LEFT JOIN subjects s ON e.subject_id = s.subject_id
+           WHERE e.user_id = %s AND e.exam_date >= CURDATE()
+           ORDER BY e.exam_date ASC""",
+        (user_id,),
+    )
+    reminder_exams = cursor.fetchall()
+    upcoming_reminders = build_reminder_items(reminder_tasks, reminder_exams, date.today())[:5]
+
+    cursor.execute(
         """SELECT ss.*, s.subject_name FROM study_sessions ss
            LEFT JOIN subjects s ON ss.subject_id = s.subject_id
            WHERE ss.user_id = %s AND ss.session_date = CURDATE()
@@ -339,6 +489,7 @@ def dashboard():
         upcoming_exams=upcoming_exams,
         todays_schedule=todays_schedule,
         high_priority_tasks=high_priority_tasks,
+        upcoming_reminders=upcoming_reminders,
         today=date.today(),
     )
 
@@ -517,6 +668,9 @@ def add_task():
     description = request.form.get("description", "").strip()
     due_date = request.form.get("due_date", "")
     priority = request.form.get("priority", "Medium")
+    reminder_days_before = int(request.form.get("reminder_days_before") or 1)
+    recurrence_type = request.form.get("recurrence_type", "").strip().lower() or None
+    recurrence_interval = max(1, int(request.form.get("recurrence_interval") or 1))
 
     if not title or not due_date:
         flash("Task title and due date are required.", "danger")
@@ -527,19 +681,18 @@ def add_task():
     if subject_id:
         cursor.execute("SELECT subject_id FROM subjects WHERE subject_id = %s AND user_id = %s", (subject_id, user_id))
         if not cursor.fetchone():
-            cursor.close()
-            conn.close()
+            cursor.close(); conn.close()
             flash("Please choose one of your subjects.", "danger")
             return redirect(url_for("tasks"))
 
     cursor.execute(
-        """INSERT INTO tasks (user_id, subject_id, title, description, due_date, priority, status)
-           VALUES (%s, %s, %s, %s, %s, %s, 'Pending')""",
-        (user_id, subject_id, title, description, due_date, priority),
+        """INSERT INTO tasks (user_id, subject_id, title, description, due_date, priority, status,
+           is_recurring, recurrence_type, recurrence_interval, reminder_days_before)
+           VALUES (%s, %s, %s, %s, %s, %s, 'Pending', %s, %s, %s, %s)""",
+        (user_id, subject_id, title, description, due_date, priority, bool(recurrence_type), recurrence_type, recurrence_interval, reminder_days_before),
     )
     conn.commit()
-    cursor.close()
-    conn.close()
+    cursor.close(); conn.close()
 
     flash("Task added successfully.", "success")
     return redirect(url_for("tasks"))
@@ -555,6 +708,9 @@ def edit_task(task_id):
     due_date = request.form.get("due_date", "")
     priority = request.form.get("priority", "Medium")
     status = request.form.get("status", "Pending")
+    reminder_days_before = int(request.form.get("reminder_days_before") or 1)
+    recurrence_type = request.form.get("recurrence_type", "").strip().lower() or None
+    recurrence_interval = max(1, int(request.form.get("recurrence_interval") or 1))
 
     if not title or not due_date:
         flash("Task title and due date are required.", "danger")
@@ -565,19 +721,19 @@ def edit_task(task_id):
     if subject_id:
         cursor.execute("SELECT subject_id FROM subjects WHERE subject_id = %s AND user_id = %s", (subject_id, user_id))
         if not cursor.fetchone():
-            cursor.close()
-            conn.close()
+            cursor.close(); conn.close()
             flash("Please choose one of your subjects.", "danger")
             return redirect(url_for("tasks"))
 
     cursor.execute(
         """UPDATE tasks SET subject_id=%s, title=%s, description=%s, due_date=%s,
-           priority=%s, status=%s WHERE task_id=%s AND user_id=%s""",
-        (subject_id, title, description, due_date, priority, status, task_id, user_id),
+           priority=%s, status=%s, is_recurring=%s, recurrence_type=%s,
+           recurrence_interval=%s, reminder_days_before=%s
+           WHERE task_id=%s AND user_id=%s""",
+        (subject_id, title, description, due_date, priority, status, bool(recurrence_type), recurrence_type, recurrence_interval, reminder_days_before, task_id, user_id),
     )
     conn.commit()
-    cursor.close()
-    conn.close()
+    cursor.close(); conn.close()
 
     flash("Task updated successfully.", "success")
     return redirect(url_for("tasks"))
@@ -588,16 +744,44 @@ def edit_task(task_id):
 def complete_task(task_id):
     user_id = session["user_id"]
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        "UPDATE tasks SET status='Completed' WHERE task_id=%s AND user_id=%s",
+        "SELECT * FROM tasks WHERE task_id=%s AND user_id=%s",
         (task_id, user_id),
     )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    task = cursor.fetchone()
 
-    flash("Task marked as completed.", "success")
+    if task:
+        recurrence_type = task.get("recurrence_type")
+        if task.get("is_recurring") and recurrence_type:
+            next_due_date = get_next_due_date(task["due_date"], recurrence_type)
+            cursor.execute(
+                """INSERT INTO tasks (user_id, subject_id, title, description, due_date, priority, status,
+                   is_recurring, recurrence_type, recurrence_interval, reminder_days_before)
+                   VALUES (%s, %s, %s, %s, %s, %s, 'Pending', %s, %s, %s, %s)""",
+                (
+                    user_id,
+                    task["subject_id"],
+                    task["title"],
+                    task["description"],
+                    next_due_date,
+                    task["priority"],
+                    True,
+                    recurrence_type,
+                    task.get("recurrence_interval") or 1,
+                    task.get("reminder_days_before") or 1,
+                ),
+            )
+            flash("Task marked complete and a new recurring task was scheduled.", "success")
+        else:
+            flash("Task marked as completed.", "success")
+
+        cursor.execute(
+            "UPDATE tasks SET status='Completed' WHERE task_id=%s AND user_id=%s",
+            (task_id, user_id),
+        )
+
+    conn.commit(); cursor.close(); conn.close()
     return redirect(url_for("tasks"))
 
 
@@ -688,6 +872,7 @@ def add_exam():
     exam_time = request.form.get("exam_time") or None
     venue = request.form.get("venue", "").strip()
     notes = request.form.get("notes", "").strip()
+    reminder_days_before = int(request.form.get("reminder_days_before") or 3)
 
     if not exam_name or not exam_date:
         flash("Exam name and date are required.", "danger")
@@ -696,9 +881,9 @@ def add_exam():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO exams (user_id, subject_id, exam_name, exam_date, exam_time, venue, notes)
-           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-        (user_id, subject_id, exam_name, exam_date, exam_time, venue, notes),
+        """INSERT INTO exams (user_id, subject_id, exam_name, exam_date, exam_time, venue, notes, reminder_days_before)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+        (user_id, subject_id, exam_name, exam_date, exam_time, venue, notes, reminder_days_before),
     )
     conn.commit()
     cursor.close()
@@ -718,6 +903,7 @@ def edit_exam(exam_id):
     exam_time = request.form.get("exam_time") or None
     venue = request.form.get("venue", "").strip()
     notes = request.form.get("notes", "").strip()
+    reminder_days_before = int(request.form.get("reminder_days_before") or 3)
 
     if not exam_name or not exam_date:
         flash("Exam name and date are required.", "danger")
@@ -727,8 +913,8 @@ def edit_exam(exam_id):
     cursor = conn.cursor()
     cursor.execute(
         """UPDATE exams SET subject_id=%s, exam_name=%s, exam_date=%s, exam_time=%s,
-           venue=%s, notes=%s WHERE exam_id=%s AND user_id=%s""",
-        (subject_id, exam_name, exam_date, exam_time, venue, notes, exam_id, user_id),
+           venue=%s, notes=%s, reminder_days_before=%s WHERE exam_id=%s AND user_id=%s""",
+        (subject_id, exam_name, exam_date, exam_time, venue, notes, reminder_days_before, exam_id, user_id),
     )
     conn.commit()
     cursor.close()
@@ -896,6 +1082,123 @@ def calendar_view():
     conn.close()
 
     return render_template("calendar.html", events=events)
+
+
+# ==============================================================
+# NOTES & REMINDERS
+# ==============================================================
+@app.route("/reminders")
+@login_required
+def reminders():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """SELECT t.*, s.subject_name FROM tasks t
+           LEFT JOIN subjects s ON t.subject_id = s.subject_id
+           WHERE t.user_id = %s AND t.status = 'Pending'""",
+        (user_id,),
+    )
+    tasks = cursor.fetchall()
+
+    cursor.execute(
+        """SELECT e.*, s.subject_name FROM exams e
+           LEFT JOIN subjects s ON e.subject_id = s.subject_id
+           WHERE e.user_id = %s""",
+        (user_id,),
+    )
+    exams = cursor.fetchall()
+    cursor.close(); conn.close()
+
+    reminder_items = build_reminder_items(tasks, exams, date.today())
+    return render_template("reminders.html", reminders=reminder_items)
+
+
+@app.route("/notes")
+@login_required
+def notes():
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT n.*, s.subject_name FROM notes n
+           LEFT JOIN subjects s ON n.subject_id = s.subject_id
+           WHERE n.user_id = %s
+           ORDER BY n.updated_at DESC""",
+        (user_id,),
+    )
+    note_list = cursor.fetchall()
+    cursor.execute("SELECT * FROM subjects WHERE user_id = %s ORDER BY subject_name", (user_id,))
+    subject_list = cursor.fetchall()
+    cursor.close(); conn.close()
+    return render_template("notes.html", notes=note_list, subjects=subject_list)
+
+
+@app.route("/notes/add", methods=["POST"])
+@login_required
+def add_note():
+    user_id = session["user_id"]
+    subject_id = request.form.get("subject_id") or None
+    title = request.form.get("title", "").strip()
+    content = request.form.get("content", "").strip()
+    resource_url = request.form.get("resource_url", "").strip()
+    tags = request.form.get("tags", "").strip()
+
+    if not title:
+        flash("Note title is required.", "danger")
+        return redirect(url_for("notes"))
+
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute(
+        """INSERT INTO notes (user_id, subject_id, title, content, resource_url, tags)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
+        (user_id, subject_id, title, content, resource_url or None, tags),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Note saved successfully.", "success")
+    return redirect(url_for("notes"))
+
+
+@app.route("/notes/edit/<int:note_id>", methods=["POST"])
+@login_required
+def edit_note(note_id):
+    user_id = session["user_id"]
+    subject_id = request.form.get("subject_id") or None
+    title = request.form.get("title", "").strip()
+    content = request.form.get("content", "").strip()
+    resource_url = request.form.get("resource_url", "").strip()
+    tags = request.form.get("tags", "").strip()
+
+    if not title:
+        flash("Note title is required.", "danger")
+        return redirect(url_for("notes"))
+
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE notes SET subject_id=%s, title=%s, content=%s, resource_url=%s, tags=%s
+           WHERE note_id=%s AND user_id=%s""",
+        (subject_id, title, content, resource_url or None, tags, note_id, user_id),
+    )
+    conn.commit(); cursor.close(); conn.close()
+    flash("Note updated successfully.", "success")
+    return redirect(url_for("notes"))
+
+
+@app.route("/notes/delete/<int:note_id>", methods=["POST"])
+@login_required
+def delete_note(note_id):
+    user_id = session["user_id"]
+    conn = get_db_connection(); cursor = conn.cursor()
+    cursor.execute("DELETE FROM notes WHERE note_id=%s AND user_id=%s", (note_id, user_id))
+    conn.commit(); cursor.close(); conn.close()
+    flash("Note deleted.", "info")
+    return redirect(url_for("notes"))
+
+
+@app.route("/health")
+def health_check():
+    return {"status": "ok", "service": "student-smart-planner"}, 200
 
 
 # ==============================================================

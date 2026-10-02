@@ -13,6 +13,10 @@ This project is already a strong academic web app. It includes the core building
 - calendar view
 - progress visualization
 - responsive UI
+- recurring tasks
+- reminders
+- notes and resource tracking
+- deployment configuration
 
 The application is built with Flask and MySQL, which is a good stack for a college-level project and also a practical product foundation.
 
@@ -24,6 +28,9 @@ The application is built with Flask and MySQL, which is a good stack for a colle
 - Use of parameterized SQL queries for protection against SQL injection
 - Functional demo login for testing
 - Simple UI that is easy to extend
+- Recurring task support with daily/weekly/monthly repeat logic
+- Reminder dashboard and note-taking features for real student usage
+- Docker and Gunicorn deployment basics for local/prod readiness
 
 ### What is still missing for a real product
 
@@ -50,11 +57,13 @@ The application is built with Flask and MySQL, which is a good stack for a colle
    - Email reminders for upcoming deadlines
    - Push notifications or browser notifications
    - SMS reminders for important tasks
+   - Implemented: reminder-based task and exam listing with custom reminder windows
 
 2. Recurring tasks and events
    - weekly assignments
    - recurring study sessions
    - automatically repeated exam prep sessions
+   - Implemented: daily, weekly, and monthly recurrence support for tasks
 
 3. Study analytics
    - chart for subject performance
@@ -66,6 +75,7 @@ The application is built with Flask and MySQL, which is a good stack for a colle
    - personal notes per subject
    - attachments or uploaded study files
    - saved links and reading materials
+   - Implemented: notes and tagged study resources per subject
 
 5. Event and calendar integrations
    - export to .ics / Google Calendar
@@ -177,6 +187,7 @@ The application is built with Flask and MySQL, which is a good stack for a colle
 - error handling and logging
 - database schema migration tooling
 - basic test coverage
+- completed: reminder logic, recurring tasks, notes, and Docker-ready deployment configuration
 
 ### Phase 2: Student productivity features
 
