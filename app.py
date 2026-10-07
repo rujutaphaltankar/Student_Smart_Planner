@@ -291,6 +291,26 @@ def ensure_schema(connection):
             if cursor.fetchone()["total"] == 0:
                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
 
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = %s AND table_name = 'calendar_events'",
+        (app.config["MYSQL_DB"],),
+    )
+    if cursor.fetchone()["total"] == 0:
+        cursor.execute(
+            """
+            CREATE TABLE calendar_events (
+                event_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(150) NOT NULL,
+                event_date DATE NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_calendar_events_user_date (user_id, event_date),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+            """
+        )
+
     connection.commit()
     cursor.close()
 
@@ -1228,12 +1248,84 @@ def calendar_view():
             "title": f"Study: {row['topic'] or 'Session'}",
             "start": row["session_date"].isoformat(),
             "type": "study",
+            "description": "",
+        })
+
+    cursor.execute(
+        "SELECT event_id, title, event_date, description FROM calendar_events WHERE user_id = %s",
+        (user_id,),
+    )
+    for row in cursor.fetchall():
+        events.append({
+            "title": row["title"],
+            "start": row["event_date"].isoformat(),
+            "type": "event",
+            "description": row["description"] or "",
+            "delete_url": url_for("delete_calendar_event", event_id=row["event_id"]),
         })
 
     cursor.close()
     conn.close()
 
     return render_template("calendar.html", events=events)
+
+
+@app.route("/calendar/events/add", methods=["POST"])
+@login_required
+def add_calendar_event():
+    user_id = session["user_id"]
+    title = request.form.get("title", "").strip()
+    event_date = request.form.get("event_date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    try:
+        parsed_date = date.fromisoformat(event_date)
+    except ValueError:
+        flash("Choose a valid event date.", "danger")
+        return redirect(url_for("calendar_view"))
+
+    if not title or len(title) > 150:
+        flash("Enter an event title with no more than 150 characters.", "danger")
+        return redirect(url_for("calendar_view"))
+    if len(description) > 2000:
+        flash("Event details must be 2,000 characters or fewer.", "danger")
+        return redirect(url_for("calendar_view"))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """INSERT INTO calendar_events (user_id, title, event_date, description)
+           VALUES (%s, %s, %s, %s)""",
+        (user_id, title, parsed_date, description or None),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Calendar event added.", "success")
+    return redirect(url_for("calendar_view"))
+
+
+@app.route("/calendar/events/delete/<int:event_id>", methods=["POST"])
+@login_required
+def delete_calendar_event(event_id):
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM calendar_events WHERE event_id = %s AND user_id = %s",
+        (event_id, user_id),
+    )
+    conn.commit()
+    deleted = cursor.rowcount
+    cursor.close()
+    conn.close()
+
+    if deleted:
+        flash("Calendar event deleted.", "info")
+    else:
+        flash("Calendar event not found.", "warning")
+    return redirect(url_for("calendar_view"))
 
 
 @app.route("/pomodoro")

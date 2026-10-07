@@ -526,17 +526,30 @@ body {
 }
 
 .calendar-cell {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
     min-height: 90px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 6px;
     font-size: 0.78rem;
     background: var(--bg-main);
+    color: var(--text-main);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 
 .calendar-cell.empty { background: transparent; border: none; }
 .calendar-cell .date-num { font-weight: 600; margin-bottom: 4px; }
 .calendar-cell.today { border: 2px solid var(--accent); }
+.calendar-cell.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
 
 .calendar-event-dot {
     display: block;
@@ -552,6 +565,71 @@ body {
 .event-task { background: #4f6bf7; }
 .event-exam { background: #e5484d; }
 .event-study { background: #4caf7d; }
+.event-event { background: #9b59d0; }
+
+.legend-event { background: #9b59d0; }
+
+.calendar-selected-panel {
+    margin-bottom: 24px;
+}
+
+.calendar-selected-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.calendar-selected-header h5 {
+    margin-top: 4px;
+    border: 0;
+    padding-bottom: 0;
+}
+
+.selected-date-events {
+    display: grid;
+    gap: 8px;
+}
+
+.selected-event-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-main);
+}
+
+.selected-event-content {
+    display: grid;
+    grid-template-columns: minmax(0, auto) auto;
+    align-items: center;
+    justify-content: start;
+    gap: 5px 10px;
+    min-width: 0;
+}
+
+.selected-event-content strong {
+    overflow-wrap: anywhere;
+}
+
+.selected-event-content p {
+    grid-column: 1 / -1;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+}
+
+.calendar-type-task { background: #4f6bf7; }
+.calendar-type-exam { background: #e5484d; }
+.calendar-type-study { background: #4caf7d; }
+.calendar-type-event { background: #9b59d0; }
+
+.selected-event-item form {
+    flex: 0 0 auto;
+}
 
 .calendar-grid.calendar-refresh {
     animation: calendar-refresh 220ms ease-out;
@@ -1043,5 +1121,25 @@ a:focus-visible {
         min-height: 68px;
         padding: 4px;
         font-size: 0.68rem;
+    }
+
+    .calendar-selected-header {
+        align-items: flex-start;
+    }
+
+    .calendar-selected-header .btn {
+        flex: 0 0 auto;
+    }
+
+    .selected-event-item {
+        padding: 10px;
+    }
+
+    .selected-event-content {
+        grid-template-columns: 1fr;
+    }
+
+    .selected-event-content p {
+        grid-column: 1;
     }
 }

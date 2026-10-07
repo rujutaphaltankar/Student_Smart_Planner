@@ -20,7 +20,7 @@ with a clean, beginner-friendly codebase suitable for a college viva.
 - **Reminders** — upcoming task and exam reminders appear in a dedicated reminder view using custom reminder windows, with optional SMTP email summaries when configured.
 - **Notes & Resources** — save subject notes, revision points, external links, and tagged study resources.
 - **Study Schedule** — plan study sessions by subject, topic, date, start time, and duration; edit/delete sessions.
-- **Calendar** — a month-view calendar combining tasks, exams, and study sessions with color-coded indicators.
+- **Calendar** — a month-view calendar combining tasks, exams, study sessions, and user-created events; select a date to review, add, or remove events saved to the database.
 - **Progress Tracking** — doughnut chart for completed vs pending tasks and subject-wise progress views.
 - **Search & Filters** — search tasks, subjects, and exams; filter by subject, status, priority, or date.
 - **Light / Dark Mode** — theme toggle stored in the browser.
