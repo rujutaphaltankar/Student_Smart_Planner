@@ -573,6 +573,15 @@ body {
     margin-bottom: 24px;
 }
 
+.calendar-selection-updated {
+    animation: calendar-selection-update 300ms ease-out;
+}
+
+@keyframes calendar-selection-update {
+    from { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    to { border-color: color-mix(in srgb, var(--border-color) 78%, transparent); box-shadow: var(--shadow-card); }
+}
+
 .calendar-selected-header {
     display: flex;
     justify-content: space-between;

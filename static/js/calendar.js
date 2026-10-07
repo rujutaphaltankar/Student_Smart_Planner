@@ -78,6 +78,10 @@ function renderCalendar(animate) {
             selectedDate = dateKey;
             renderCalendar();
             renderSelectedDate();
+            document.getElementById('selectedDateLabel').scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'center'
+            });
         });
 
         const dateLabel = document.createElement('div');
@@ -121,6 +125,12 @@ function renderSelectedDate() {
     dateLabel.textContent = formatReadableDate(selectedDate);
     eventDateInput.value = selectedDate;
     eventList.replaceChildren();
+    const selectedPanel = document.querySelector('.calendar-selected-panel');
+    if (selectedPanel) {
+        selectedPanel.classList.remove('calendar-selection-updated');
+        void selectedPanel.offsetWidth;
+        selectedPanel.classList.add('calendar-selection-updated');
+    }
 
     const selectedEvents = (events || []).filter(function (event) {
         return event.start === selectedDate;
@@ -195,17 +205,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const prevBtn = document.getElementById('prevMonth');
     const nextBtn = document.getElementById('nextMonth');
 
+    function changeMonth(offset) {
+        const selectedDay = Number(selectedDate.slice(-2));
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+        currentDate.setDate(Math.min(selectedDay, lastDay));
+        selectedDate = formatDateKey(currentDate);
+        renderCalendar(true);
+        renderSelectedDate();
+    }
+
     if (prevBtn) {
         prevBtn.addEventListener('click', function () {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar(true);
+            changeMonth(-1);
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', function () {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar(true);
+            changeMonth(1);
         });
     }
 });
