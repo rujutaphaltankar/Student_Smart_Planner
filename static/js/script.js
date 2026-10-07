@@ -4,6 +4,47 @@
 // ==========================================================
 
 document.addEventListener('DOMContentLoaded', function () {
+    // ---- Reveal cards as they enter the viewport ----
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!motionPreference.matches && 'IntersectionObserver' in window) {
+        const revealObserver = new IntersectionObserver(function (entries, observer) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12 });
+
+        document.querySelectorAll(
+            '.page-content .panel-card, .page-content .stat-card, ' +
+            '.page-content .subject-card, .page-content .exam-card'
+        ).forEach(function (element) {
+            element.classList.add('scroll-reveal');
+            revealObserver.observe(element);
+        });
+    }
+
+    // ---- Animate progress bars from empty to their rendered values ----
+    if (!motionPreference.matches) {
+        document.querySelectorAll('.progress-rail span').forEach(function (bar) {
+            const targetWidth = bar.style.width;
+            bar.style.width = '0';
+            requestAnimationFrame(function () {
+                bar.style.width = targetWidth;
+            });
+        });
+    }
+
+    // ---- Stagger list and table rows on page load ----
+    if (!motionPreference.matches) {
+        document.querySelectorAll('.page-content .simple-list > li, .page-content tbody tr')
+            .forEach(function (element, index) {
+                element.classList.add('list-enter');
+                element.style.animationDelay = Math.min(index * 40, 280) + 'ms';
+            });
+    }
+
     // ---- Sidebar toggle (mobile) ----
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');

@@ -166,6 +166,43 @@ body {
 .page-content > :nth-child(4) { animation-delay: 150ms; }
 .page-content > :nth-child(5) { animation-delay: 200ms; }
 
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 420ms ease, transform 420ms ease;
+    animation: none;
+}
+
+.scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.list-enter {
+    animation: page-enter 360ms ease-out both;
+}
+
+.btn {
+    transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+.btn:hover {
+    filter: brightness(1.04);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.modal.fade .modal-dialog {
+    transform: translateY(8px) scale(0.985);
+    transition: transform 200ms ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0) scale(1);
+}
+
 .welcome-heading { font-weight: 700; }
 
 /* ---------- Cards ---------- */
@@ -355,7 +392,10 @@ body {
 .progress-score-caption { margin-top: 4px; }
 .progress-score-icon { width: 58px; height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(79,107,247,0.12); color: var(--accent); font-size: 1.6rem; }
 .progress-rail { display: flex; overflow: hidden; height: 12px; border-radius: 8px; background: var(--border-color); }
-.progress-rail span { min-width: 0; transition: width 0.4s ease; }
+.progress-rail span {
+    min-width: 0;
+    transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .progress-rail-completed { background: #4caf7d; }
 .progress-rail-pending { background: #f5a623; }
 .progress-rail-overdue { background: #e5484d; }
@@ -513,6 +553,27 @@ body {
 .event-exam { background: #e5484d; }
 .event-study { background: #4caf7d; }
 
+.calendar-grid.calendar-refresh {
+    animation: calendar-refresh 220ms ease-out;
+}
+
+@keyframes calendar-refresh {
+    from { opacity: 0.45; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pomodoro-display {
+    transition: color 180ms ease, transform 180ms ease;
+}
+
+.pomodoro-display.is-running {
+    animation: timer-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+    50% { transform: scale(1.025); }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 991px) {
     .sidebar { transform: translateX(-100%); }
@@ -525,8 +586,20 @@ body {
     *::before,
     *::after {
         animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
         transition-duration: 0.01ms !important;
+    }
+
+    .scroll-reveal {
+        opacity: 1;
+        transform: none;
+    }
+
+    .list-enter,
+    .calendar-grid.calendar-refresh,
+    .pomodoro-display.is-running {
+        animation: none !important;
     }
 }

@@ -6,11 +6,12 @@
 
 let currentDate = new Date();
 
-function renderCalendar() {
+function renderCalendar(animate) {
     const grid = document.getElementById('calendarGrid');
     const label = document.getElementById('calendarMonthLabel');
     if (!grid || !label) return;
 
+    grid.classList.remove('calendar-refresh');
     grid.innerHTML = '';
 
     const year = currentDate.getFullYear();
@@ -80,6 +81,11 @@ function renderCalendar() {
 
         grid.appendChild(cell);
     }
+
+    if (animate) {
+        void grid.offsetWidth;
+        grid.classList.add('calendar-refresh');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -91,14 +97,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (prevBtn) {
         prevBtn.addEventListener('click', function () {
             currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
+            renderCalendar(true);
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', function () {
             currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
+            renderCalendar(true);
         });
     }
 });

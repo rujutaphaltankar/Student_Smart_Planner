@@ -66,6 +66,7 @@ function updateDisplay() {
 function startTimer() {
     if (running) return;
     running = true;
+    timerDisplay.classList.add('is-running');
     timerId = setInterval(() => {
         if (totalSeconds > 0) {
             totalSeconds -= 1;
@@ -73,6 +74,7 @@ function startTimer() {
         } else {
             clearInterval(timerId);
             running = false;
+            timerDisplay.classList.remove('is-running');
             alert('Focus session completed. Take a short break.');
         }
     }, 1000);
@@ -81,6 +83,7 @@ function startTimer() {
 function pauseTimer() {
     running = false;
     clearInterval(timerId);
+    timerDisplay.classList.remove('is-running');
 }
 
 function resetTimer() {
