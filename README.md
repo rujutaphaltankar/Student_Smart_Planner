@@ -24,7 +24,7 @@ with a clean, beginner-friendly codebase suitable for a college viva.
 - **Progress Tracking** — doughnut chart for completed vs pending tasks and subject-wise progress views.
 - **Search & Filters** — search tasks, subjects, and exams; filter by subject, status, priority, or date.
 - **Light / Dark Mode** — theme toggle stored in the browser.
-- **Responsive UI** — sidebar navigation, cards, table views, modals, and mobile-friendly layout.
+- **Responsive UI** — sidebar navigation, cards, table views, modals, and mobile-friendly layout, with subtle page-load animations and reduced-motion support.
 - **Deployment Basics** — Docker, Gunicorn, environment-based config, and health-check endpoints are included for deployment readiness.
 
 ---
